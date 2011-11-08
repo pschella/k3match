@@ -48,6 +48,7 @@ if (K3MATCH_WITH_PYTHON_BINDINGS)
     set_target_properties(pyk3match
         PROPERTIES
         PREFIX ""
+        OUTPUT_NAME "k3match"
         SUFFIX ".so"
         )
 

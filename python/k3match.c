@@ -141,9 +141,9 @@ static PyMethodDef K3MatchMethods[] = {
 };
 
   PyMODINIT_FUNC
-initpyk3match(void)
+initk3match(void)
 {
-  (void) Py_InitModule("pyk3match", K3MatchMethods);
+  (void) Py_InitModule("k3match", K3MatchMethods);
   import_array();
 }
 
