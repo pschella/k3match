@@ -27,7 +27,7 @@ spherical(PyObject *self, PyObject *args)
   double *dst = NULL;
   double *values;
   double ds;
-  long int dims[2];
+  npy_intp dims[2];
   long int N_ta, N_pa;
   long int N_tb, N_pb;
   long int i;
