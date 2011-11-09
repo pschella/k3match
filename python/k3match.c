@@ -55,8 +55,16 @@ spherical(PyObject *self, PyObject *args)
   if (N_ta != N_pa) return NULL;
   if (N_tb != N_pb) return NULL;
 
-  if ((values = (double*) malloc(3 * N_ta * sizeof(double))) == NULL) return NULL;
-  if ((catalog = (point_t*) malloc(N_ta * sizeof(point_t))) == NULL) return NULL;
+  if (!(values = (double*) malloc(3 * N_ta * sizeof(double))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for Cartesian coordinates of points.");
+    return NULL;
+  }
+  if (!(catalog = (point_t*) malloc(N_ta * sizeof(point_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for catalog of points.");
+    return NULL;
+  }
   for (i=0; i<N_ta; i++)
   {
     catalog[i].id = i;
@@ -67,11 +75,19 @@ spherical(PyObject *self, PyObject *args)
     catalog[i].value[2] = cos(*(double *)(theta_a->data + i*theta_a->strides[0]));
   }
 
-  if ((tree = (node_t*) malloc(N_ta * sizeof(node_t))) == NULL) return NULL;
+  if (!(tree = (node_t*) malloc(N_ta * sizeof(node_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for tree.");
+    return NULL;
+  }
   tree->parent = NULL;
   k3m_build_balanced_tree(tree, catalog, N_ta, 0, &npool);
 
-  search.value = malloc(3 * sizeof(double));
+  if (!(search.value = malloc(3 * sizeof(double))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for Cartesian coordinates of search point.");
+    return NULL;
+  }
   for (i=0; i<N_tb; i++)
   {
     search.id = i;
