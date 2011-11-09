@@ -13,18 +13,24 @@ spherical(PyObject *self, PyObject *args)
 {
   PyArrayObject *theta_a, *phi_a;
   PyArrayObject *theta_b, *phi_b;
-  PyArrayObject *output, *output_ds;
+  PyArrayObject *py_idx, *py_dst;
+
   point_t *catalog, *match;
   point_t search;
   node_t *tree;
+  point_t *mi = NULL;
+
+  long int j = 0;
+  long int k = 0;
+  long int Nres = 0;
+  long int *idx = NULL;
+  double *dst = NULL;
   double *values;
-
   double ds;
-
+  long int dims[2];
   long int N_ta, N_pa;
   long int N_tb, N_pb;
   long int i;
-
   long int npool = 0;
 
   if (!PyArg_ParseTuple(args, "O!O!O!O!d",
@@ -65,15 +71,6 @@ spherical(PyObject *self, PyObject *args)
   tree->parent = NULL;
   k3m_build_balanced_tree(tree, catalog, N_ta, 0, &npool);
 
-//  k3m_print_tree(tree);
-
-  long int j = 0;
-  long int k = 0;
-  long int Nres = 0;
-  long int *results = NULL;
-  double *distance = NULL;
-  point_t *mi = NULL;
-
   search.value = malloc(3 * sizeof(double));
   for (i=0; i<N_tb; i++)
   {
@@ -92,47 +89,43 @@ spherical(PyObject *self, PyObject *args)
       Nres++;
     }
 
-    if ((results = realloc(results, 2 * Nres * sizeof(long int))) == NULL) return NULL;
-    if ((distance = realloc(distance, Nres * sizeof(double))) == NULL) return NULL;
+    if ((idx = realloc(idx, 2 * Nres * sizeof(long int))) == NULL) return NULL;
+    if ((dst = realloc(dst, Nres * sizeof(double))) == NULL) return NULL;
 
     mi = match;
     while (mi)
     {
-      results[j] = search.id;
+      idx[j] = search.id;
       j++;
-      results[j] = mi->id;
+      idx[j] = mi->id;
       j++;
-      distance[k] = mi->ds;
+      dst[k] = 2 * asin(sqrt((mi->ds) / 2));
       k++;
       mi = mi ->neighbour;
     }
     j = 2 * Nres;
   }
+
+//  for (i=0; i<Nres; i++)
+//  {
+//    printf("%ld %ld %.15f\n", idx[2*i], idx[2*i+1], dst[i]);
+//  }
+
   free(search.value);
-
-  long int dims[2];
-  dims[0] = Nres;
-  dims[1] = 2;
-
-  output = (PyArrayObject *) PyArray_SimpleNew(2, dims, NPY_LONG);
-  output_ds = (PyArrayObject *) PyArray_SimpleNew(1, dims, NPY_DOUBLE);
-
-  long int *out = (long int *) output->data;
-  double *out_ds = (double *) output_ds->data;
-  for (i=0; i<Nres; i++)
-  {
-    out[2*i] = results[2*i];
-    out[2*i+1] = results[2*i+1];
-    out_ds[i] = 2 * asin(sqrt(distance[i]) / 2);
-  }
-
   free(values);
   free(catalog);
   free(tree);
-  free(results);
-  free(distance);
 
-  return Py_BuildValue("OO", PyArray_Return(output), PyArray_Return(output_ds));
+  dims[0] = Nres;
+  dims[1] = 2;
+
+  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, dims, NPY_LONG, idx);
+  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
+
+  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, dst);
+  PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
+
+  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
 }
 
 static PyMethodDef K3MatchMethods[] = {

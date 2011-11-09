@@ -34,7 +34,7 @@ int main()
 
   double ds = M_PI / (60 * 180);
   long int N_a = 1e6;
-  long int N_b = 1e6;
+  long int N_b = 1e2;
 
   long int npool = 0;
 
@@ -83,6 +83,7 @@ int main()
       match = match->neighbour;
     }
   }
+  free(search.value);
 
   free(values);
   free(catalog);
