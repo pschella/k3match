@@ -41,10 +41,26 @@ spherical(PyObject *self, PyObject *args)
   ds = 2 * sin(ds / 2);
   ds = ds * ds;
 
-  if (NULL == theta_a) return NULL;
-  if (NULL == phi_a) return NULL;
-  if (NULL == theta_b) return NULL;
-  if (NULL == phi_b) return NULL;
+  if (!theta_a)
+  {
+    PyErr_SetString(PyExc_TypeError, "theta_a has an invalid type.");
+    return NULL;
+  }
+  if (!phi_a)
+  {
+    PyErr_SetString(PyExc_TypeError, "phi_a has an invalid type.");
+    return NULL;
+  }
+  if (!theta_b)
+  {
+    PyErr_SetString(PyExc_TypeError, "theta_b has an invalid type.");
+    return NULL;
+  }
+  if (!phi_b)
+  {
+    PyErr_SetString(PyExc_TypeError, "phi_b has an invalid type.");
+    return NULL;
+  }
 
   N_ta = theta_a->dimensions[0];
   N_pa = phi_a->dimensions[0];
@@ -52,17 +68,25 @@ spherical(PyObject *self, PyObject *args)
   N_tb = theta_b->dimensions[0];
   N_pb = phi_b->dimensions[0];
 
-  if (N_ta != N_pa) return NULL;
-  if (N_tb != N_pb) return NULL;
+  if (N_ta != N_pa)
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
+  if (N_tb != N_pb)
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
 
   if (!(values = (double*) malloc(3 * N_ta * sizeof(double))))
   {
-    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for Cartesian coordinates of points.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
   }
   if (!(catalog = (point_t*) malloc(N_ta * sizeof(point_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for catalog of points.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
     return NULL;
   }
   for (i=0; i<N_ta; i++)
@@ -77,7 +101,7 @@ spherical(PyObject *self, PyObject *args)
 
   if (!(tree = (node_t*) malloc(N_ta * sizeof(node_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for tree.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
     return NULL;
   }
   tree->parent = NULL;
@@ -85,7 +109,7 @@ spherical(PyObject *self, PyObject *args)
 
   if (!(search.value = malloc(3 * sizeof(double))))
   {
-    PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for Cartesian coordinates of search point.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
     return NULL;
   }
   for (i=0; i<N_tb; i++)
@@ -105,8 +129,16 @@ spherical(PyObject *self, PyObject *args)
       Nres++;
     }
 
-    if ((idx = realloc(idx, 2 * Nres * sizeof(long int))) == NULL) return NULL;
-    if ((dst = realloc(dst, Nres * sizeof(double))) == NULL) return NULL;
+    if (!(idx = realloc(idx, 2 * Nres * sizeof(long int))))
+    {
+      PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+      return NULL;
+    }
+    if (!(dst = realloc(dst, Nres * sizeof(double))))
+    {
+      PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+      return NULL;
+    }
 
     mi = match;
     while (mi)
