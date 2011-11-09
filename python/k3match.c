@@ -11,26 +11,31 @@ static char doc[] =
 static PyObject *
 spherical(PyObject *self, PyObject *args)
 {
-  PyArrayObject *theta_a, *phi_a;
-  PyArrayObject *theta_b, *phi_b;
-  PyArrayObject *py_idx, *py_dst;
+  PyArrayObject *theta_a = NULL;
+  PyArrayObject *phi_a = NULL;
+  PyArrayObject *theta_b = NULL;
+  PyArrayObject *phi_b = NULL;
+  PyArrayObject *py_idx = NULL;
+  PyArrayObject *py_dst = NULL;
 
-  point_t *catalog, *match;
+  point_t *catalog = NULL;
+  point_t *match = NULL;
   point_t search;
-  node_t *tree;
+  node_t *tree = NULL;
   point_t *mi = NULL;
 
+  long int i = 0;
   long int j = 0;
   long int k = 0;
   long int Nres = 0;
+  long int Nlast = 0;
+  double ds = 0;
   long int *idx = NULL;
   double *dst = NULL;
-  double *values;
-  double ds;
+  double *values = NULL;
   npy_intp dims[2];
   long int N_ta, N_pa;
   long int N_tb, N_pb;
-  long int i;
   long int npool = 0;
 
   if (!PyArg_ParseTuple(args, "O!O!O!O!d",
@@ -113,17 +118,6 @@ spherical(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  if (!(idx = malloc(2 * sizeof(long int))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate primary memory for results.");
-    return NULL;
-  }
-  if (!(dst = malloc(sizeof(double))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate primary memory for results.");
-    return NULL;
-  }
-
   for (i=0; i<N_tb; i++)
   {
     search.id = i;
@@ -141,15 +135,20 @@ spherical(PyObject *self, PyObject *args)
       Nres++;
     }
 
-    if (!(idx = realloc(idx, 2 * Nres * sizeof(long int))))
+    if (Nres > Nlast)
     {
-      PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-      return NULL;
-    }
-    if (!(dst = realloc(dst, Nres * sizeof(double))))
-    {
-      PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-      return NULL;
+      if (!(idx = realloc(idx, 2 * Nres * sizeof(long int))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+      if (!(dst = realloc(dst, Nres * sizeof(double))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+
+      Nlast = Nres;
     }
 
     mi = match;
