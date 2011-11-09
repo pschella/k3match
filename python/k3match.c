@@ -33,7 +33,7 @@ spherical(PyObject *self, PyObject *args)
   long int *idx = NULL;
   double *dst = NULL;
   double *values = NULL;
-  npy_intp dims[2];
+  npy_intp shape[2];
   long int N_ta, N_pa;
   long int N_tb, N_pb;
   long int npool = 0;
@@ -175,13 +175,13 @@ spherical(PyObject *self, PyObject *args)
   free(catalog);
   free(tree);
 
-  dims[0] = Nres;
-  dims[1] = 2;
+  shape[0] = Nres;
+  shape[1] = 2;
 
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, dims, NPY_LONG, idx);
+  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_LONG, idx);
   PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
 
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, dst);
+  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
   PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
 
   return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
