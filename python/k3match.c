@@ -112,6 +112,18 @@ spherical(PyObject *self, PyObject *args)
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
     return NULL;
   }
+
+  if (!(idx = malloc(2 * sizeof(long int))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate primary memory for results.");
+    return NULL;
+  }
+  if (!(dst = malloc(sizeof(double))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate primary memory for results.");
+    return NULL;
+  }
+
   for (i=0; i<N_tb; i++)
   {
     search.id = i;
