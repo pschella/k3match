@@ -43,7 +43,7 @@ if (K3MATCH_WITH_PYTHON_BINDINGS)
 
     add_library (pyk3match SHARED k3match.c)
 
-    target_link_libraries (pyk3match k3match ${PYTHON_LIBRARIES})
+    target_link_libraries (pyk3match k3match m ${PYTHON_LIBRARIES})
 
     set_target_properties(pyk3match
         PROPERTIES
