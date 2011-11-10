@@ -203,22 +203,20 @@ point_t* k3m_in_range(node_t *tree, point_t *lm, point_t *search, real_t ds)
   point_t* sub_lm = NULL;
   real_t dc = 0;
 
-  while (1)
+  do
   {
     current->point->neighbour = NULL;
 
     dc = k3m_distance_squared(current->point, search);
     if (dc < ds)
     {
-      if (lm != NULL)
-      {
-        current->point->neighbour = &(*lm);
-      }
+      current->point->neighbour = &(*lm);
       lm = current->point;
       lm->ds = dc;
     }
 
-    if ((current->point->value[current->axis] - search->value[current->axis]) * (current->point->value[current->axis] - search->value[current->axis]) < ds)
+    dc = current->point->value[current->axis] - search->value[current->axis];
+    if ((dc * dc) < ds)
     {
       if (last == current->left && current->right != NULL)
       {
@@ -230,16 +228,9 @@ point_t* k3m_in_range(node_t *tree, point_t *lm, point_t *search, real_t ds)
       }
     }
 
-    if (current == tree)
-    {
-      break;
-    }
-    else
-    {
-      last = current;
-      current = current->parent;
-    }
-  }
+    last = current;
+    current = current->parent;
+  } while (last != tree);
 
   return lm;
 }

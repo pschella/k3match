@@ -15,7 +15,6 @@ set (K3MATCH_VERSION "${K3MATCH_VERSION_MAJOR}.${K3MATCH_VERSION_MINOR}.${K3MATC
 
 ## Add definitions
 add_definitions (-O2)
-add_definitions (-fPIC)
 add_definitions (-Wall)
 add_definitions (-Werror)
 add_definitions (-g)

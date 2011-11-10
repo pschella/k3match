@@ -18,10 +18,12 @@
 
 #include <k3match.h>
 
-real_t k3m_distance_squared(point_t* a, point_t* b)
+real_t k3m_distance_squared(const point_t* a, const point_t* b)
 {
-  return (a->value[0]-b->value[0])*(a->value[0]-b->value[0]) + \
-         (a->value[1]-b->value[1])*(a->value[1]-b->value[1]) + \
-         (a->value[2]-b->value[2])*(a->value[2]-b->value[2]);
+  const real_t dx = a->value[0] - b->value[0];
+  const real_t dy = a->value[1] - b->value[1];
+  const real_t dz = a->value[2] - b->value[2];
+
+  return dx*dx + dy*dy + dz*dz;
 }
 
