@@ -1,5 +1,5 @@
 /**************************************************************************
- *  This file is part of the K3Match library.                         *
+ *  This file is part of the K3Match library.                             *
  *  Copyright (C) 2010 Pim Schellart <P.Schellart@astro.ru.nl>            *
  *                                                                        *
  *  This library is free software: you can redistribute it and/or modify  *
