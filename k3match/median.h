@@ -21,35 +21,7 @@
 
 #include <k3match.h>
 
-/*!
-  \brief Return median row of array sorted on x column
-
-  \param array array of values
-  \param n size of array
-
-  \returns median of array
- */
-point_t* k3m_median_x(point_t *array, const int n);
-
-/*!
-  \brief Return median row of array sorted on y column
-
-  \param array array of values
-  \param n size of array
-
-  \returns median of array
- */
-point_t* k3m_median_y(point_t *array, const int n);
-
-/*!
-  \brief Return median row of array sorted on z column
-
-  \param array array of values
-  \param n size of array
-
-  \returns median of array
- */
-point_t* k3m_median_z(point_t *array, const int n);
+point_t* k3m_median(point_t **array, const unsigned long n, const unsigned int axis);
 
 #endif // __K3MATCH_MEDIAN_H__
 

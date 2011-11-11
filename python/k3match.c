@@ -18,7 +18,7 @@ spherical(PyObject *self, PyObject *args)
   PyArrayObject *py_idx = NULL;
   PyArrayObject *py_dst = NULL;
 
-  point_t *catalog = NULL;
+  point_t **catalog = NULL;
   point_t *match = NULL;
   point_t search;
   node_t *tree = NULL;
@@ -78,6 +78,7 @@ spherical(PyObject *self, PyObject *args)
     PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
     return NULL;
   }
+
   if (N_tb != N_pb)
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
@@ -89,19 +90,22 @@ spherical(PyObject *self, PyObject *args)
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
   }
-  if (!(catalog = (point_t*) malloc(N_ta * sizeof(point_t))))
+
+  if (!(catalog = malloc(N_ta * sizeof(point_t*))) || !(*catalog = malloc(N_ta * sizeof(point_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
     return NULL;
   }
+
   for (i=0; i<N_ta; i++)
   {
-    catalog[i].id = i;
-    catalog[i].value = values + 3 * i;
+    catalog[i] = catalog[0] + i;
+    catalog[i]->id = i;
+    catalog[i]->value = values + 3 * i;
 
-    catalog[i].value[0] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * cos(*(double *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i].value[1] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * sin(*(double *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i].value[2] = cos(*(double *)(theta_a->data + i*theta_a->strides[0]));
+    catalog[i]->value[0] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * cos(*(double *)(phi_a->data + i*phi_a->strides[0]));
+    catalog[i]->value[1] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * sin(*(double *)(phi_a->data + i*phi_a->strides[0]));
+    catalog[i]->value[2] = cos(*(double *)(theta_a->data + i*theta_a->strides[0]));
   }
 
   if (!(tree = (node_t*) malloc(N_ta * sizeof(node_t))))
@@ -109,6 +113,7 @@ spherical(PyObject *self, PyObject *args)
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
     return NULL;
   }
+
   tree->parent = NULL;
   k3m_build_balanced_tree(tree, catalog, N_ta, 0, &npool);
 

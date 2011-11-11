@@ -31,7 +31,7 @@ struct node_t {
   node_t *parent, *left, *right;
 };
 
-void k3m_build_balanced_tree(node_t *tree, point_t *points, long int npoints, long int level, long int *npool);
+void k3m_build_balanced_tree(node_t *tree, point_t **points, long int npoints, long int level, long int *npool);
 
 void k3m_print_tree(node_t *tree);
 

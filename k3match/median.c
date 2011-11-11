@@ -20,48 +20,60 @@
 
 #include <k3match/median.h>
 
-int cmp_x(const void *a, const void *b)
+#define SWAP(a,b) { temp=(a); (a)=(b); (b)=temp; }
+
+point_t* k3m_median(point_t **array, const unsigned long n, const unsigned int axis)
 {
-  point_t *at = (point_t*)a;
-  point_t *bt = (point_t*)b;
+  point_t *temp = NULL;
+  unsigned long low, high ;
+  unsigned long median;
+  unsigned long middle, ll, hh;
 
-  return ( at->value[0] > bt->value[0] ) ? 1 : -1;
-}
+  low = 0 ; high = n-1 ; median = (low + high) / 2;
+  for (;;)
+  {
+    if (high <= low)
+    {
+      /* One element only */
+      return array[median];
+    }
 
-int cmp_y(const void *a, const void *b)
-{
-  point_t *at = (point_t*)a;
-  point_t *bt = (point_t*)b;
+    if (high == low + 1)
+    {
+      /* Two elements only */
+      if (array[low]->value[axis] > array[high]->value[axis])
+        SWAP(array[low], array[high]);
+      return array[median];
+    }
 
-  return ( at->value[1] > bt->value[1] ) ? 1 : -1;
-}
+    /* Find median of low, middle and high items; swap into position low */
+    middle = (low + high) / 2;
+    if (array[middle]->value[axis] > array[high]->value[axis]) SWAP(array[middle], array[high]);
+    if (array[low]->value[axis] > array[high]->value[axis]) SWAP(array[low], array[high]);
+    if (array[middle]->value[axis] > array[low]->value[axis]) SWAP(array[middle], array[low]);
 
-int cmp_z(const void *a, const void *b)
-{
-  point_t *at = (point_t*)a;
-  point_t *bt = (point_t*)b;
+    /* Swap low item (now in position middle) into position (low+1) */
+    SWAP(array[middle], array[low+1]);
 
-  return ( at->value[2] > bt->value[2] ) ? 1 : -1;
-}
+    /* Nibble from each end towards middle, swapping items when stuck */
+    ll = low + 1;
+    hh = high;
+    for (;;)
+    {
+      do ll++; while (array[low]->value[axis] > array[ll]->value[axis]);
+      do hh--; while (array[hh]->value[axis]  > array[low]->value[axis]);
 
-point_t* k3m_median_x(point_t *array, const int n)
-{
-  qsort(array, n, sizeof(point_t), cmp_x);
+      if (hh < ll) break;
 
-  return array + n/2;
-}
+      SWAP(array[ll], array[hh]);
+    }
 
-point_t* k3m_median_y(point_t *array, const int n)
-{
-  qsort(array, n, sizeof(point_t), cmp_y);
+    /* Swap middle item (in position low) back into correct position */
+    SWAP(array[low], array[hh]);
 
-  return array + n/2;
-}
-
-point_t* k3m_median_z(point_t *array, const int n)
-{
-  qsort(array, n, sizeof(point_t), cmp_z);
-
-  return array + n/2;
+    /* Re-set active partition */
+    if (hh <= median) low = ll;
+    if (hh >= median) high = hh - 1;
+  }
 }
 

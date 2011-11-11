@@ -32,7 +32,7 @@ struct point_t {
   real_t ds;
 };
 
-real_t k3m_distance_squared(point_t* a, point_t* b);
+real_t k3m_distance_squared(const point_t* a, const point_t* b);
 
 #endif // __K3MATCH_POINT_H__
 
