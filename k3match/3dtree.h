@@ -41,7 +41,7 @@ node_t* k3m_closest_leaf(node_t *tree, point_t *point);
 
 node_t* k3m_nearest_neighbour(node_t *tree, point_t *point);
 
-point_t* k3m_in_range(node_t *tree, point_t *lm, point_t *search, real_t ds);
+long int k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds);
 
 #endif // __K3MATCH_3DTREE_H__
 

@@ -20,12 +20,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-
 #include <k3match.h>
 
 int main()
 {
-  clock_t start, diff;
+  clock_t start, build_diff, search_diff;
   int msec;
 
   point_t **catalog, *match;
@@ -35,13 +34,13 @@ int main()
   double theta, phi;
   long int i;
 
-  double ds = M_PI / (60 * 180);
+  double ds = 5 * M_PI / (60 * 180);
   long int N_a = 1e6;
   long int N_b = 1e6;
 
   long int npool = 0;
 
-  int seed = time(NULL);
+  int seed = 215342512; //time(NULL);
   srand(seed);
 
   ds = 2 * sin(ds / 2);
@@ -69,14 +68,15 @@ int main()
   start = clock();
   npool = 0;
   k3m_build_balanced_tree(tree, catalog, N_a, 0, &npool);
-  diff = clock() - start;
-  msec = diff * 1000 / CLOCKS_PER_SEC;
-  printf("building tree %d seconds %d milliseconds\n", msec/1000, msec%1000);
+  build_diff = clock() - start;
 
 //  k3m_print_tree(tree);
 //  k3m_print_dot_tree(tree);
 
   search.value = malloc(3 * sizeof(double));
+  point_t *mi = NULL;
+  long int nmatch = 0;
+  long int id = 0;
   start = clock();
   for (i=0; i<N_b; i++)
   {
@@ -89,20 +89,26 @@ int main()
     search.value[1] = sin(theta) * sin(phi);
     search.value[2] = cos(theta);
 
-    match = k3m_in_range(tree, NULL, &search, ds);
+    match = NULL;
+    nmatch = k3m_in_range(tree, &match, &search, ds);
 
-    while (match)
+    mi = match;
+    nmatch++;
+    while (--nmatch)
     {
-//      printf("%ld %ld %f\n", search.id, match->id, 2 * asin(sqrt(match->ds) / 2));
-      match = match->neighbour;
+      printf("%ld %ld %f %f %f\n", search.id, mi->id, mi->value[0], mi->value[1], mi->value[2]);
+      id = mi->id;
+      mi = mi->neighbour;
     }
   }
-  diff = clock() - start;
+  search_diff = clock() - start;
 
-  msec = diff * 1000 / CLOCKS_PER_SEC;
-  printf("comparing %d seconds %d milliseconds\n", msec/1000, msec%1000);
+  msec = build_diff * 1000 / CLOCKS_PER_SEC;
+  printf("building tree %d seconds %d milliseconds\n", msec/1000, msec%1000);
+  msec = search_diff * 1000 / CLOCKS_PER_SEC;
+  printf("searching %d seconds %d milliseconds\n", msec/1000, msec%1000);
+
   free(search.value);
-
   free(values);
   free(catalog);
   free(tree);

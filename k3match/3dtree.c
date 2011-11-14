@@ -185,35 +185,38 @@ node_t* k3m_nearest_neighbour(node_t *tree, point_t *point)
   }
 }
 
-point_t* k3m_in_range(node_t *tree, point_t *lm, point_t *search, real_t ds)
+long int k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 {
-  node_t* current = k3m_closest_leaf(tree, search);
-  node_t* last = NULL;
-  point_t* sub_lm = NULL;
+  long int nmatch = 0;
   real_t dc = 0;
+  node_t* current = NULL;
+  node_t* last = NULL;
+
+  if (!tree) return nmatch;
+
+  current = k3m_closest_leaf(tree, search);
 
   do
   {
-    current->point->neighbour = NULL;
-
     dc = k3m_distance_squared(current->point, search);
     if (dc < ds)
     {
-      current->point->neighbour = &(*lm);
-      lm = current->point;
-      lm->ds = dc;
+      current->point->ds = dc;
+      current->point->neighbour = *match;
+      *match = &(*current->point);
+      nmatch++;
     }
 
     dc = current->point->value[current->axis] - search->value[current->axis];
     if ((dc * dc) < ds)
     {
-      if (last == current->left && current->right != NULL)
+      if (last == current->left)
       {
-        if ((sub_lm = k3m_in_range(current->right, lm, search, ds))) lm = sub_lm;
+        nmatch += k3m_in_range(current->right, match, search, ds);
       }
-      else if (last == current->right && current->left != NULL)
+      else
       {
-        if ((sub_lm = k3m_in_range(current->left, lm, search, ds))) lm = sub_lm;
+        nmatch += k3m_in_range(current->left, match, search, ds);
       }
     }
 
@@ -221,6 +224,6 @@ point_t* k3m_in_range(node_t *tree, point_t *lm, point_t *search, real_t ds)
     current = current->parent;
   } while (last != tree);
 
-  return lm;
+  return nmatch;
 }
 

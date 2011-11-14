@@ -131,14 +131,8 @@ spherical(PyObject *self, PyObject *args)
     search.value[1] = sin(*(double *)(theta_b->data + i*theta_b->strides[0])) * sin(*(double *)(phi_b->data + i*phi_b->strides[0]));
     search.value[2] = cos(*(double *)(theta_b->data + i*theta_b->strides[0]));
 
-    match = k3m_in_range(tree, NULL, &search, ds);
-
-    mi = match;
-    while (mi)
-    {
-      mi = mi->neighbour;
-      Nres++;
-    }
+    match = NULL;
+    Nres += k3m_in_range(tree, &match, &search, ds);
 
     if (Nres > Nlast)
     {
