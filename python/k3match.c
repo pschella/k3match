@@ -23,19 +23,19 @@ spherical(PyObject *self, PyObject *args)
   point_t search;
   node_t *tree = NULL;
 
-  long int i = 0;
-  long int j = 0;
-  long int k = 0;
-  long int nresults = 0;
-  long int nmatch = 0;
-  double ds = 0;
-  long int *idx = NULL;
-  double *dst = NULL;
-  double *values = NULL;
+  int_t i = 0;
+  int_t j = 0;
+  int_t k = 0;
+  int_t nresults = 0;
+  int_t nmatch = 0;
+  real_t ds = 0;
+  int_t *idx = NULL;
+  real_t *dst = NULL;
+  real_t *values = NULL;
   npy_intp shape[2];
-  long int N_ta, N_pa;
-  long int N_tb, N_pb;
-  long int npool = 0;
+  int_t N_ta, N_pa;
+  int_t N_tb, N_pb;
+  int_t npool = 0;
 
   if (!PyArg_ParseTuple(args, "O!O!O!O!d",
         &PyArray_Type, &theta_a, &PyArray_Type, &phi_a,
@@ -84,7 +84,7 @@ spherical(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  if (!(values = (double*) malloc(3 * N_ta * sizeof(double))))
+  if (!(values = (real_t*) malloc(3 * N_ta * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
@@ -102,9 +102,9 @@ spherical(PyObject *self, PyObject *args)
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
 
-    catalog[i]->value[0] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * cos(*(double *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i]->value[1] = sin(*(double *)(theta_a->data + i*theta_a->strides[0])) * sin(*(double *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i]->value[2] = cos(*(double *)(theta_a->data + i*theta_a->strides[0]));
+    catalog[i]->value[0] = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0])) * cos(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
+    catalog[i]->value[1] = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0])) * sin(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
+    catalog[i]->value[2] = cos(*(real_t *)(theta_a->data + i*theta_a->strides[0]));
   }
 
   if (!(tree = (node_t*) malloc(N_ta * sizeof(node_t))))
@@ -116,7 +116,7 @@ spherical(PyObject *self, PyObject *args)
   tree->parent = NULL;
   k3m_build_balanced_tree(tree, catalog, N_ta, 0, &npool);
 
-  if (!(search.value = malloc(3 * sizeof(double))))
+  if (!(search.value = malloc(3 * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
     return NULL;
@@ -126,9 +126,9 @@ spherical(PyObject *self, PyObject *args)
   {
     search.id = i;
 
-    search.value[0] = sin(*(double *)(theta_b->data + i*theta_b->strides[0])) * cos(*(double *)(phi_b->data + i*phi_b->strides[0]));
-    search.value[1] = sin(*(double *)(theta_b->data + i*theta_b->strides[0])) * sin(*(double *)(phi_b->data + i*phi_b->strides[0]));
-    search.value[2] = cos(*(double *)(theta_b->data + i*theta_b->strides[0]));
+    search.value[0] = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0])) * cos(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
+    search.value[1] = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0])) * sin(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
+    search.value[2] = cos(*(real_t *)(theta_b->data + i*theta_b->strides[0]));
 
     match = NULL;
     nmatch = k3m_in_range(tree, &match, &search, ds);
@@ -137,12 +137,12 @@ spherical(PyObject *self, PyObject *args)
     {
       nresults += nmatch;
 
-      if (!(idx = realloc(idx, 2 * nresults * sizeof(long int))))
+      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
         return NULL;
       }
-      if (!(dst = realloc(dst, nresults * sizeof(double))))
+      if (!(dst = realloc(dst, nresults * sizeof(real_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
         return NULL;
@@ -170,7 +170,7 @@ spherical(PyObject *self, PyObject *args)
   shape[0] = nresults;
   shape[1] = 2;
 
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_LONG, idx);
+  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
   PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
 
   py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);

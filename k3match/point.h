@@ -24,7 +24,7 @@
 typedef struct point_t point_t;
 
 struct point_t {
-  long int id;
+  int_t id;
 
   real_t *value;
 

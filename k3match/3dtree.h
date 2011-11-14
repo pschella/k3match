@@ -31,7 +31,7 @@ struct node_t {
   node_t *parent, *left, *right;
 };
 
-void k3m_build_balanced_tree(node_t *tree, point_t **points, long int npoints, long int level, long int *npool);
+void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_t level, int_t *npool);
 
 void k3m_print_tree(node_t *tree);
 
@@ -41,7 +41,7 @@ node_t* k3m_closest_leaf(node_t *tree, point_t *point);
 
 node_t* k3m_nearest_neighbour(node_t *tree, point_t *point);
 
-long int k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds);
+int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds);
 
 #endif // __K3MATCH_3DTREE_H__
 

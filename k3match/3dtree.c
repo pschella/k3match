@@ -21,12 +21,12 @@
 
 #include <k3match.h>
 
-void k3m_build_balanced_tree(node_t *tree, point_t **points, long int npoints, long int level, long int *npool)
+void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_t level, int_t *npool)
 {
   node_t *current = tree+(*npool);
 
-  long int nleft;
-  long int nright;
+  int_t nleft;
+  int_t nright;
 
   if (npoints == 1)
   {
@@ -65,7 +65,7 @@ void k3m_print_tree(node_t *tree)
 {
   if (!tree) return;
 
-  printf("%ld %f %f %f\n", tree->point->id, tree->point->value[0], tree->point->value[1], tree->point->value[2]);
+  printf("%lu %f %f %f\n", (unsigned long)tree->point->id, tree->point->value[0], tree->point->value[1], tree->point->value[2]);
 
   k3m_print_tree(tree->left);
   k3m_print_tree(tree->right);
@@ -77,16 +77,16 @@ void k3m_print_dot_tree(node_t *tree)
 
   if (tree->left != NULL)
   {
-    printf("%ld -> %ld;\n", tree->point->id, tree->left->point->id);
+    printf("%lu -> %lu;\n", (unsigned long)tree->point->id, (unsigned long)tree->left->point->id);
   }
   
   if (tree->right != NULL)
   {
-    printf("%ld -> %ld;\n", tree->point->id, tree->right->point->id);
+    printf("%lu -> %lu;\n", (unsigned long)tree->point->id, (unsigned long)tree->right->point->id);
   }
 
   real_t *l = tree->point->value;
-  printf("%ld [label=\"%ld\\n %f, ", tree->point->id, tree->point->id, *l);
+  printf("%lu [label=\"%lu\\n %f, ", (unsigned long)tree->point->id, (unsigned long)tree->point->id, *l);
   l++;
   printf("%f, ", *l);
   l++;
@@ -185,9 +185,9 @@ node_t* k3m_nearest_neighbour(node_t *tree, point_t *point)
   }
 }
 
-long int k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
+int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 {
-  long int nmatch = 0;
+  int_t nmatch = 0;
   real_t dc = 0;
   node_t* current = NULL;
   node_t* last = NULL;

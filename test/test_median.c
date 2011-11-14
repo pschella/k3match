@@ -36,14 +36,14 @@ int main()
   int seed = time(NULL);
   srand(seed);
 
-  if ((values = malloc(3 * N * sizeof(double))) == NULL) return 1;
+  if ((values = malloc(3 * N * sizeof(real_t))) == NULL) return 1;
   if ((catalog = malloc(N * sizeof(point_t*))) == NULL) return 1;
   if ((*catalog = malloc(N * sizeof(point_t))) == NULL) return 1;
   for (i=0; i<N; i++)
   {
     catalog[i] = catalog[0] + i;
-    theta = M_PI * (double) rand() / (double) RAND_MAX;
-    phi = 2 * M_PI * (double) rand() / (double) RAND_MAX;
+    theta = M_PI * (real_t) rand() / (real_t) RAND_MAX;
+    phi = 2 * M_PI * (real_t) rand() / (real_t) RAND_MAX;
 
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;

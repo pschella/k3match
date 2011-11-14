@@ -30,15 +30,15 @@ int main()
   point_t **catalog, *match;
   point_t search;
   node_t *tree;
-  double *values;
-  double theta, phi;
-  long int i;
+  real_t *values;
+  real_t theta, phi;
+  int_t i;
 
-  double ds = 5 * M_PI / (60 * 180);
-  long int N_a = 1e6;
-  long int N_b = 1e6;
+  real_t ds = 5 * M_PI / (60 * 180);
+  int_t N_a = 1e6;
+  int_t N_b = 1e6;
 
-  long int npool = 0;
+  int_t npool = 0;
 
   int seed = 215342512; //time(NULL);
   srand(seed);
@@ -46,14 +46,14 @@ int main()
   ds = 2 * sin(ds / 2);
   ds = ds * ds;
 
-  if ((values = malloc(3 * N_a * sizeof(double))) == NULL) return 1;
+  if ((values = malloc(3 * N_a * sizeof(real_t))) == NULL) return 1;
   if ((catalog = malloc(N_a * sizeof(point_t*))) == NULL) return 1;
   if ((*catalog = malloc(N_a * sizeof(point_t))) == NULL) return 1;
   for (i=0; i<N_a; i++)
   {
     catalog[i] = catalog[0] + i;
-    theta = M_PI * (double) rand() / (double) RAND_MAX;
-    phi = 2 * M_PI * (double) rand() / (double) RAND_MAX;
+    theta = M_PI * (real_t) rand() / (real_t) RAND_MAX;
+    phi = 2 * M_PI * (real_t) rand() / (real_t) RAND_MAX;
 
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
@@ -73,15 +73,15 @@ int main()
 //  k3m_print_tree(tree);
 //  k3m_print_dot_tree(tree);
 
-  search.value = malloc(3 * sizeof(double));
+  search.value = malloc(3 * sizeof(real_t));
   point_t *mi = NULL;
-  long int nmatch = 0;
-  long int id = 0;
+  int_t nmatch = 0;
+  int_t id = 0;
   start = clock();
   for (i=0; i<N_b; i++)
   {
-    theta = M_PI * (double) rand() / (double) RAND_MAX;
-    phi = 2 * M_PI * (double) rand() / (double) RAND_MAX;
+    theta = M_PI * (real_t) rand() / (real_t) RAND_MAX;
+    phi = 2 * M_PI * (real_t) rand() / (real_t) RAND_MAX;
 
     search.id = i;
 

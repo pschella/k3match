@@ -18,9 +18,9 @@
 
 #include <k3match.h>
 
-point_t* k3m_nearest_neighbour_brute(point_t* points, long int npoints, point_t* search)
+point_t* k3m_nearest_neighbour_brute(point_t* points, int_t npoints, point_t* search)
 {
-  long int i;
+  int_t i;
   point_t* nearest = points;
   real_t n = k3m_distance_squared(nearest, search);
   real_t d = n;

@@ -38,6 +38,8 @@ typedef float real_t;
 typedef double real_t;
 #endif
 
+typedef unsigned long int_t;
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
