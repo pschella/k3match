@@ -28,8 +28,9 @@ struct point_t {
 
   real_t *value;
 
-  point_t* neighbour;
   real_t ds;
+
+  point_t* neighbour;
 };
 
 real_t k3m_distance_squared(const point_t* a, const point_t* b);
