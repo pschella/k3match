@@ -22,7 +22,6 @@ spherical(PyObject *self, PyObject *args)
   point_t *match = NULL;
   point_t search;
   node_t *tree = NULL;
-  point_t *mi = NULL;
 
   long int i = 0;
   long int j = 0;
@@ -150,24 +149,18 @@ spherical(PyObject *self, PyObject *args)
       }
     }
 
-    mi = match;
-    while (mi)
+    while (match)
     {
       idx[j] = search.id;
       j++;
-      idx[j] = mi->id;
+      idx[j] = match->id;
       j++;
-      dst[k] = 2 * asin(sqrt((mi->ds) / 2));
+      dst[k] = 2 * asin(sqrt((match->ds) / 2));
       k++;
-      mi = mi ->neighbour;
+      match = match->neighbour;
     }
     j = 2 * nresults;
   }
-
-//  for (i=0; i<nresults; i++)
-//  {
-//    printf("%ld %ld %.15f\n", idx[2*i], idx[2*i+1], dst[i]);
-//  }
 
   free(search.value);
   free(values);
