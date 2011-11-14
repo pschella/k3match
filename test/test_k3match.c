@@ -25,6 +25,9 @@
 
 int main()
 {
+  clock_t start, diff;
+  int msec;
+
   point_t **catalog, *match;
   point_t search;
   node_t *tree;
@@ -63,14 +66,18 @@ int main()
 
   if ((tree = (node_t*) malloc(N_a * sizeof(node_t))) == NULL) return 1;
   tree->parent = NULL;
-  printf("building tree\n");
+  start = clock();
+  npool = 0;
   k3m_build_balanced_tree(tree, catalog, N_a, 0, &npool);
-  printf("done\n");
+  diff = clock() - start;
+  msec = diff * 1000 / CLOCKS_PER_SEC;
+  printf("building tree %d seconds %d milliseconds\n", msec/1000, msec%1000);
 
 //  k3m_print_tree(tree);
 //  k3m_print_dot_tree(tree);
 
   search.value = malloc(3 * sizeof(double));
+  start = clock();
   for (i=0; i<N_b; i++)
   {
     theta = M_PI * (double) rand() / (double) RAND_MAX;
@@ -90,6 +97,10 @@ int main()
       match = match->neighbour;
     }
   }
+  diff = clock() - start;
+
+  msec = diff * 1000 / CLOCKS_PER_SEC;
+  printf("comparing %d seconds %d milliseconds\n", msec/1000, msec%1000);
   free(search.value);
 
   free(values);
