@@ -155,7 +155,7 @@ spherical(PyObject *self, PyObject *args)
       j++;
       idx[j] = match->id;
       j++;
-      dst[k] = 2 * asin(sqrt((match->ds) / 2));
+      dst[k] = 2 * asin(sqrt(match->ds) / 2);
       k++;
       match = match->neighbour;
     }
