@@ -27,8 +27,8 @@ spherical(PyObject *self, PyObject *args)
   long int i = 0;
   long int j = 0;
   long int k = 0;
-  long int Nres = 0;
-  long int Nlast = 0;
+  long int nresults = 0;
+  long int nmatch = 0;
   double ds = 0;
   long int *idx = NULL;
   double *dst = NULL;
@@ -132,22 +132,22 @@ spherical(PyObject *self, PyObject *args)
     search.value[2] = cos(*(double *)(theta_b->data + i*theta_b->strides[0]));
 
     match = NULL;
-    Nres += k3m_in_range(tree, &match, &search, ds);
+    nmatch = k3m_in_range(tree, &match, &search, ds);
 
-    if (Nres > Nlast)
+    if (nmatch)
     {
-      if (!(idx = realloc(idx, 2 * Nres * sizeof(long int))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
-      if (!(dst = realloc(dst, Nres * sizeof(double))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
+      nresults += nmatch;
 
-      Nlast = Nres;
+      if (!(idx = realloc(idx, 2 * nresults * sizeof(long int))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+      if (!(dst = realloc(dst, nresults * sizeof(double))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
     }
 
     mi = match;
@@ -161,10 +161,10 @@ spherical(PyObject *self, PyObject *args)
       k++;
       mi = mi ->neighbour;
     }
-    j = 2 * Nres;
+    j = 2 * nresults;
   }
 
-//  for (i=0; i<Nres; i++)
+//  for (i=0; i<nresults; i++)
 //  {
 //    printf("%ld %ld %.15f\n", idx[2*i], idx[2*i+1], dst[i]);
 //  }
@@ -174,7 +174,7 @@ spherical(PyObject *self, PyObject *args)
   free(catalog);
   free(tree);
 
-  shape[0] = Nres;
+  shape[0] = nresults;
   shape[1] = 2;
 
   py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_LONG, idx);
