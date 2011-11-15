@@ -17,21 +17,12 @@ set (K3MATCH_VERSION "${K3MATCH_VERSION_MAJOR}.${K3MATCH_VERSION_MINOR}.${K3MATC
 add_definitions (-O2)
 add_definitions (-Wall)
 add_definitions (-Werror)
-add_definitions (-g)
 
 ## Options
 option (K3MATCH_SHARED_LIBRARY "Build k3match as shared library." ON)
-option (K3MATCH_SINGLE_PRECISION "Use single precision for all floating point calculations." OFF)
-option (K3MATCH_WITH_PYTHON_BINDINGS "Build Python bindings." ON)
 
 ## Set include directories
 include_directories (BEFORE ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR})
-
-## Configuration
-configure_file (
-    ${PROJECT_SOURCE_DIR}/k3match_config.h.in
-    ${PROJECT_BINARY_DIR}/k3match_config.h
-)
 
 ## Install header files
 install (FILES ${PROJECT_SOURCE_DIR}/k3match.h ${PROJECT_BINARY_DIR}/k3match_config.h
@@ -40,9 +31,6 @@ install (FILES ${PROJECT_SOURCE_DIR}/k3match.h ${PROJECT_BINARY_DIR}/k3match_con
 
 ## Library
 add_subdirectory (k3match)
-
-## Bindings
-add_subdirectory (python)
 
 ## Test
 add_subdirectory (test)

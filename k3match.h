@@ -19,11 +19,12 @@
 #ifndef __K3MATCH_H__
 #define __K3MATCH_H__
 
-#include <k3match_config.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif 
+
+typedef double real_t;
+typedef unsigned long int_t;
 
 #include <k3match/point.h>
 #include <k3match/median.h>
@@ -35,5 +36,4 @@ extern "C" {
 #endif
 
 #endif // __K3MATCH_H__
-
 

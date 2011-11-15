@@ -1,8 +1,10 @@
-add_executable (test_k3match test_k3match.c)
+set (tests test_k3match test_median)
 
-target_link_libraries (test_k3match m k3match)
+foreach (test ${tests})
 
-add_executable (test_median test_median.c)
+    add_executable (${test} ${test}.c)
 
-target_link_libraries (test_median m k3match)
+    target_link_libraries (${test} m k3match)
+
+endforeach(test ${tests})
 

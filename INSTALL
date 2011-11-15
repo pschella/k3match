@@ -1,0 +1,36 @@
+There are currently two methods to install k3match.
+To install the C library only use "cmake", to install the Python module use "distutils".
+
+1. CMAKE
+
+1.1 PREREQUISITES
+
+    In addition to the C standard library and a C compiler
+    you need the following packages.
+
+    cmake (>= 2.8.0)
+
+1.2 INSTALLING
+
+    mkdir build
+    cd build
+    cmake ../
+    make
+    sudo make install
+
+2. DISTUTILS
+
+2.1 PREREQUISITES
+
+    In addition to the C standard library and a C compiler
+    you need the following packages.
+
+    python (>= 2.6.0)
+    python-dev (>= 2.6.0)
+    python-numpy (>= 1.4.0)
+    python-numpy-dev (>= 1.4.0)
+
+2.2 INSTALLING
+
+    sudo python setup.py install
+
