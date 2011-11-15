@@ -14,7 +14,7 @@ set (K3MATCH_VERSION_PATCH 1)
 set (K3MATCH_VERSION "${K3MATCH_VERSION_MAJOR}.${K3MATCH_VERSION_MINOR}.${K3MATCH_VERSION_PATCH}")
 
 ## Add definitions
-add_definitions (-O2)
+add_definitions (-O3)
 add_definitions (-Wall)
 add_definitions (-Werror)
 

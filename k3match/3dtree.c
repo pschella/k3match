@@ -187,6 +187,7 @@ node_t* k3m_nearest_neighbour(node_t *tree, point_t *point)
 
 int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 {
+  int i;
   real_t d[3];
   int_t nmatch = 0;
   real_t dc = 0;
@@ -199,12 +200,11 @@ int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 
   do
   {
-    d[0] = current->point->value[0] - search->value[0];
-    d[0] = d[0] * d[0];
-    d[1] = current->point->value[1] - search->value[1];
-    d[1] = d[1] * d[1];
-    d[2] = current->point->value[2] - search->value[2];
-    d[2] = d[2] * d[2];
+    for (i=0; i<3; i++)
+    {
+      d[i] = current->point->value[i] - search->value[i];
+      d[i] = d[i] * d[i];
+    }
 
     dc = d[0] + d[1] + d[2];
     if (dc < ds)
