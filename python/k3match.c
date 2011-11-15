@@ -28,6 +28,7 @@ spherical(PyObject *self, PyObject *args)
   int_t k = 0;
   int_t nresults = 0;
   int_t nmatch = 0;
+  real_t st = 0;
   real_t ds = 0;
   int_t *idx = NULL;
   real_t *dst = NULL;
@@ -102,8 +103,9 @@ spherical(PyObject *self, PyObject *args)
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
 
-    catalog[i]->value[0] = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0])) * cos(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i]->value[1] = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0])) * sin(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
+    st = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0]));
+    catalog[i]->value[0] = st * cos(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
+    catalog[i]->value[1] = st * sin(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
     catalog[i]->value[2] = cos(*(real_t *)(theta_a->data + i*theta_a->strides[0]));
   }
 
@@ -126,8 +128,9 @@ spherical(PyObject *self, PyObject *args)
   {
     search.id = i;
 
-    search.value[0] = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0])) * cos(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
-    search.value[1] = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0])) * sin(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
+    st = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0]));
+    search.value[0] = st * cos(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
+    search.value[1] = st * sin(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
     search.value[2] = cos(*(real_t *)(theta_b->data + i*theta_b->strides[0]));
 
     match = NULL;
