@@ -187,6 +187,7 @@ node_t* k3m_nearest_neighbour(node_t *tree, point_t *point)
 
 int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 {
+  real_t d[3];
   int_t nmatch = 0;
   real_t dc = 0;
   node_t* current = NULL;
@@ -198,7 +199,14 @@ int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 
   do
   {
-    dc = k3m_distance_squared(current->point, search);
+    d[0] = current->point->value[0] - search->value[0];
+    d[0] = d[0] * d[0];
+    d[1] = current->point->value[1] - search->value[1];
+    d[1] = d[1] * d[1];
+    d[2] = current->point->value[2] - search->value[2];
+    d[2] = d[2] * d[2];
+
+    dc = d[0] + d[1] + d[2];
     if (dc < ds)
     {
       current->point->ds = dc;
@@ -207,8 +215,7 @@ int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
       nmatch++;
     }
 
-    dc = current->point->value[current->axis] - search->value[current->axis];
-    if ((dc * dc) < ds)
+    if (d[current->axis] < ds)
     {
       if (last == current->left)
       {

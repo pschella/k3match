@@ -1,4 +1,4 @@
-set (tests test_k3match test_median)
+set (tests test_k3match test_k3match-new test_median)
 
 foreach (test ${tests})
 

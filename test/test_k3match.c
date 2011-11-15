@@ -96,7 +96,7 @@ int main()
     nmatch++;
     while (--nmatch)
     {
-      printf("%ld %ld %f %f %f\n", search.id, mi->id, mi->value[0], mi->value[1], mi->value[2]);
+//      printf("%ld %ld %f %f %f\n", search.id, mi->id, mi->value[0], mi->value[1], mi->value[2]);
       id = mi->id;
       mi = mi->neighbour;
     }
