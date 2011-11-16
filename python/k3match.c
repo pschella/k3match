@@ -578,9 +578,158 @@ celestial_new(PyObject *self, PyObject *args)
   return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
 }
 
+static PyObject *
+cartesian(PyObject *self, PyObject *args)
+{
+  PyArrayObject *s = NULL;
+  PyArrayObject *c = NULL;
+  PyArrayObject *py_idx = NULL;
+  PyArrayObject *py_dst = NULL;
+
+  point_t **catalog = NULL;
+  point_t *match = NULL;
+  point_t search;
+  node_t *tree = NULL;
+
+  int_t i = 0;
+  int_t j = 0;
+  int_t k = 0;
+  int_t nresults = 0;
+  int_t nmatch = 0;
+  real_t st = 0;
+  real_t ds = 0;
+  int_t *idx = NULL;
+  real_t *dst = NULL;
+  real_t *values = NULL;
+  npy_intp shape[2];
+  int_t npool = 0;
+
+  if (!PyArg_ParseTuple(args, "O!O!d",
+        &PyArray_Type, &s, &PyArray_Type, &c,
+        &ds)) return NULL;
+
+  ds = ds * ds;
+
+  if (!s)
+  {
+    PyErr_SetString(PyExc_TypeError, "s has an invalid type.");
+    return NULL;
+  }
+  if (!c)
+  {
+    PyErr_SetString(PyExc_TypeError, "c has an invalid type.");
+    return NULL;
+  }
+  if (s->nd != 2 || s->dimensions[1] != 3)
+  {
+    PyErr_SetString(PyExc_TypeError, "s has an invalid shape.");
+    return NULL;
+  }
+  if (c->nd != 2 || c->dimensions[1] != 3)
+  {
+    PyErr_SetString(PyExc_TypeError, "c has an invalid shape.");
+    return NULL;
+  }
+
+  if (!(values = (real_t*) malloc(3 * c->dimensions[0] * sizeof(real_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
+    return NULL;
+  }
+
+  if (!(catalog = malloc(c->dimensions[0] * sizeof(point_t*))) || !(*catalog = malloc(c->dimensions[0] * sizeof(point_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
+    return NULL;
+  }
+
+  for (i=0; i<c->dimensions[0]; i++)
+  {
+    catalog[i] = catalog[0] + i;
+    catalog[i]->id = i;
+    catalog[i]->value = values + 3 * i;
+
+    catalog[i]->value[0] = *(real_t *)(c->data + i*c->strides[0] + 0 * c->strides[1]);
+    catalog[i]->value[1] = *(real_t *)(c->data + i*c->strides[0] + 1 * c->strides[1]);
+    catalog[i]->value[2] = *(real_t *)(c->data + i*c->strides[0] + 2 * c->strides[1]);
+  }
+
+  if (!(tree = (node_t*) malloc(c->dimensions[0] * sizeof(node_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
+    return NULL;
+  }
+
+  tree->parent = NULL;
+  k3m_build_balanced_tree(tree, catalog, c->dimensions[0], 0, &npool);
+
+  if (!(search.value = malloc(3 * sizeof(real_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
+    return NULL;
+  }
+
+  for (i=0; i<s->dimensions[0]; i++)
+  {
+    search.id = i;
+
+    search.value[0] = *(real_t *)(s->data + i*s->strides[0] + 0 * s->strides[1]);
+    search.value[1] = *(real_t *)(s->data + i*s->strides[0] + 1 * s->strides[1]);
+    search.value[2] = *(real_t *)(s->data + i*s->strides[0] + 2 * s->strides[1]);
+
+    match = NULL;
+    nmatch = k3m_in_range(tree, &match, &search, ds);
+
+    if (nmatch)
+    {
+      nresults += nmatch;
+
+      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+      if (!(dst = realloc(dst, nresults * sizeof(real_t))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+    }
+
+    while (match)
+    {
+      idx[j] = search.id;
+      j++;
+      idx[j] = match->id;
+      j++;
+      dst[k] = sqrt(match->ds);
+      k++;
+      match = match->neighbour;
+    }
+    j = 2 * nresults;
+  }
+
+  free(search.value);
+  free(values);
+  free(catalog);
+  free(tree);
+
+  shape[0] = nresults;
+  shape[1] = 2;
+
+  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
+  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
+
+  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
+  PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
+
+  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
+}
+
 static PyMethodDef K3MatchMethods[] = {
   {"spherical", spherical, METH_VARARGS, spherical_doc},
   {"celestial", celestial, METH_VARARGS, celestial_doc},
+  {"cartesian", cartesian, METH_VARARGS, spherical_doc},
   {"celestial_new", celestial_new, METH_VARARGS, celestial_doc},
   {NULL, NULL, 0, NULL}
 };
