@@ -11,10 +11,10 @@ static char doc[] =
 static PyObject *
 spherical(PyObject *self, PyObject *args)
 {
-  PyArrayObject *theta_a = NULL;
-  PyArrayObject *phi_a = NULL;
-  PyArrayObject *theta_b = NULL;
-  PyArrayObject *phi_b = NULL;
+  PyArrayObject *theta_c = NULL;
+  PyArrayObject *phi_c = NULL;
+  PyArrayObject *theta_s = NULL;
+  PyArrayObject *phi_s = NULL;
   PyArrayObject *py_idx = NULL;
   PyArrayObject *py_dst = NULL;
 
@@ -34,89 +34,89 @@ spherical(PyObject *self, PyObject *args)
   real_t *dst = NULL;
   real_t *values = NULL;
   npy_intp shape[2];
-  int_t N_ta, N_pa;
-  int_t N_tb, N_pb;
+  int_t N_tc, N_pc;
+  int_t N_ts, N_ps;
   int_t npool = 0;
 
   if (!PyArg_ParseTuple(args, "O!O!O!O!d",
-        &PyArray_Type, &theta_a, &PyArray_Type, &phi_a,
-        &PyArray_Type, &theta_b, &PyArray_Type, &phi_b,
+        &PyArray_Type, &theta_s, &PyArray_Type, &phi_s,
+        &PyArray_Type, &theta_c, &PyArray_Type, &phi_c,
         &ds)) return NULL;
 
   ds = 2 * sin(ds / 2);
   ds = ds * ds;
 
-  if (!theta_a)
+  if (!theta_c)
   {
-    PyErr_SetString(PyExc_TypeError, "theta_a has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "theta_c has an invalid type.");
     return NULL;
   }
-  if (!phi_a)
+  if (!phi_c)
   {
-    PyErr_SetString(PyExc_TypeError, "phi_a has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "phi_c has an invalid type.");
     return NULL;
   }
-  if (!theta_b)
+  if (!theta_s)
   {
-    PyErr_SetString(PyExc_TypeError, "theta_b has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "theta_s has an invalid type.");
     return NULL;
   }
-  if (!phi_b)
+  if (!phi_s)
   {
-    PyErr_SetString(PyExc_TypeError, "phi_b has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "phi_s has an invalid type.");
     return NULL;
   }
 
-  N_ta = theta_a->dimensions[0];
-  N_pa = phi_a->dimensions[0];
+  N_tc = theta_c->dimensions[0];
+  N_pc = phi_c->dimensions[0];
 
-  N_tb = theta_b->dimensions[0];
-  N_pb = phi_b->dimensions[0];
+  N_ts = theta_s->dimensions[0];
+  N_ps = phi_s->dimensions[0];
 
-  if (N_ta != N_pa)
+  if (N_tc != N_pc)
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
     return NULL;
   }
 
-  if (N_tb != N_pb)
+  if (N_ts != N_ps)
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
     return NULL;
   }
 
-  if (!(values = (real_t*) malloc(3 * N_ta * sizeof(real_t))))
+  if (!(values = (real_t*) malloc(3 * N_tc * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
   }
 
-  if (!(catalog = malloc(N_ta * sizeof(point_t*))) || !(*catalog = malloc(N_ta * sizeof(point_t))))
+  if (!(catalog = malloc(N_tc * sizeof(point_t*))) || !(*catalog = malloc(N_tc * sizeof(point_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
     return NULL;
   }
 
-  for (i=0; i<N_ta; i++)
+  for (i=0; i<N_tc; i++)
   {
     catalog[i] = catalog[0] + i;
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
 
-    st = sin(*(real_t *)(theta_a->data + i*theta_a->strides[0]));
-    catalog[i]->value[0] = st * cos(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i]->value[1] = st * sin(*(real_t *)(phi_a->data + i*phi_a->strides[0]));
-    catalog[i]->value[2] = cos(*(real_t *)(theta_a->data + i*theta_a->strides[0]));
+    st = sin(*(real_t *)(theta_c->data + i*theta_c->strides[0]));
+    catalog[i]->value[0] = st * cos(*(real_t *)(phi_c->data + i*phi_c->strides[0]));
+    catalog[i]->value[1] = st * sin(*(real_t *)(phi_c->data + i*phi_c->strides[0]));
+    catalog[i]->value[2] = cos(*(real_t *)(theta_c->data + i*theta_c->strides[0]));
   }
 
-  if (!(tree = (node_t*) malloc(N_ta * sizeof(node_t))))
+  if (!(tree = (node_t*) malloc(N_tc * sizeof(node_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
     return NULL;
   }
 
   tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, N_ta, 0, &npool);
+  k3m_build_balanced_tree(tree, catalog, N_tc, 0, &npool);
 
   if (!(search.value = malloc(3 * sizeof(real_t))))
   {
@@ -124,14 +124,14 @@ spherical(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  for (i=0; i<N_tb; i++)
+  for (i=0; i<N_ts; i++)
   {
     search.id = i;
 
-    st = sin(*(real_t *)(theta_b->data + i*theta_b->strides[0]));
-    search.value[0] = st * cos(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
-    search.value[1] = st * sin(*(real_t *)(phi_b->data + i*phi_b->strides[0]));
-    search.value[2] = cos(*(real_t *)(theta_b->data + i*theta_b->strides[0]));
+    st = sin(*(real_t *)(theta_s->data + i*theta_s->strides[0]));
+    search.value[0] = st * cos(*(real_t *)(phi_s->data + i*phi_s->strides[0]));
+    search.value[1] = st * sin(*(real_t *)(phi_s->data + i*phi_s->strides[0]));
+    search.value[2] = cos(*(real_t *)(theta_s->data + i*theta_s->strides[0]));
 
     match = NULL;
     nmatch = k3m_in_range(tree, &match, &search, ds);
