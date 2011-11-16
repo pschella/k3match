@@ -9,7 +9,41 @@
 #define DEGREES(r) ((180.0 / M_PI) * (r))
 
 static char doc[] =
-"This is the C extension";
+"K3Match: A package for fast matching of points in 3D space.\n"
+"===========================================================\n\n"
+"K3Match uses an implementation of three dimensional binary trees to efficiently"
+" find matches between points in 3D space.\n"
+"A given list of search points is compared to a list of catalog points and match indices and"
+" distances are given.\n"
+"K3Match can find either the closest match or all matches within a given search distance.\n"
+"Matches can be found either in 3D Cartesian space or on the surface of the 2D unit sphere in"
+" standard spherical or celestial coordinates.\n";
+
+static char spherical_doc[] =
+"(idx, d) = k3match.spherical(theta_s, phi_s, theta_c, phi_c, ds)\n\n"
+"Find all matches on the unit sphere between two sets of points (theta_s, phi_s) and (theta_c, phi_c)"
+"within a given radius ds.\n\n"
+"Note that for maximum execution speed the array with catalog points should be the longest.\n\n"
+"Parameters\n"
+"----------\n"
+"theta_s : ndarray\n"
+"    The zenith angle of the search points in radians.\n"
+"phi_s : ndarray\n"
+"    The azimuth angle of the search points in radians.\n"
+"theta_c : ndarray\n"
+"    The zenith angle of the catalog points in radians.\n"
+"phi_c : ndarray\n"
+"    The azimuth angle of the catalog points in radians.\n"
+"ds : float\n"
+"    The search radius in radians.\n\n"
+"Returns\n"
+"-------\n"
+"idx : ndarray\n"
+"    Indices of found matches. Returned as a two dimensional array where the first dimension is the"
+" match number and the second dimension corresponds to the two input sets. So for example"
+" the index into the theta_c array corresponding to the third match would be idx[2][1].\n"
+"d : ndarray\n"
+"    Distance in radians for each match found.\n";
 
 static PyObject *
 spherical(PyObject *self, PyObject *args)
@@ -184,6 +218,32 @@ spherical(PyObject *self, PyObject *args)
 
   return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
 }
+
+static char celestial_doc[] =
+"(idx, d) = k3match.celestial(ra_s, dec_s, ra_c, dec_c, ds)\n\n"
+"Find all matches on the celestial sphere between two sets of points (ra_s, dec_s) and (ra_c, dec_c)"
+"within a given radius ds.\n\n"
+"Note that for maximum execution speed the array with catalog points should be the longest.\n\n"
+"Parameters\n"
+"----------\n"
+"ra_s : ndarray\n" \
+"    Right ascension of the search points in degrees.\n"
+"dec_s : ndarray\n"
+"    Declination of the search points in degrees.\n"
+"ra_c : ndarray\n"
+"    Right ascension of the catalog points in degrees.\n"
+"dec_c : ndarray\n"
+"    Declination of the catalog points in degrees.\n"
+"ds : float\n"
+"    The search radius in degrees.\n\n"
+"Returns\n"
+"-------\n"
+"idx : ndarray\n"
+"    Indices of found matches. Returned as a two dimensional array where the first dimension is the"
+" match number and the second dimension corresponds to the two input sets. So for example"
+" the index into the ra_c array corresponding to the third match would be idx[2][1].\n"
+"d : ndarray\n"
+"    Distance in degrees for each match found.\n";
 
 static PyObject *
 celestial(PyObject *self, PyObject *args)
@@ -360,15 +420,15 @@ celestial(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef K3MatchMethods[] = {
-  {"spherical", spherical, METH_VARARGS, doc},
-  {"celestial", celestial, METH_VARARGS, doc},
+  {"spherical", spherical, METH_VARARGS, spherical_doc},
+  {"celestial", celestial, METH_VARARGS, celestial_doc},
   {NULL, NULL, 0, NULL}
 };
 
   PyMODINIT_FUNC
 initk3match(void)
 {
-  (void) Py_InitModule("k3match", K3MatchMethods);
+  (void) Py_InitModule3("k3match", K3MatchMethods, doc);
   import_array();
 }
 
