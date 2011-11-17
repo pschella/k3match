@@ -20,411 +20,44 @@ static char doc[] =
 " standard spherical or celestial coordinates.\n";
 
 static char spherical_doc[] =
-"(idx, d) = k3match.spherical(theta_s, phi_s, theta_c, phi_c, ds)\n\n"
-"Find all matches on the unit sphere between two sets of points (theta_s, phi_s) and (theta_c, phi_c)"
-"within a given radius ds.\n\n"
-"Note that for maximum execution speed the array with catalog points should be the longest.\n\n"
+"(idx_a, idx_b, d) = k3match.spherical(theta_a, phi_a, theta_b, phi_b, ds)\n\n"
+"Find all matches on the unit sphere between two sets of points (theta_a, phi_a) and (theta_b, phi_b)"
+"within a given angular distance ds.\n\n"
+"Ordering of the arrays is not important since binary tree will be built automatically for longest array.\n\n"
 "Parameters\n"
 "----------\n"
-"theta_s : ndarray\n"
-"    The zenith angle of the search points in radians.\n"
-"phi_s : ndarray\n"
-"    The azimuth angle of the search points in radians.\n"
-"theta_c : ndarray\n"
-"    The zenith angle of the catalog points in radians.\n"
-"phi_c : ndarray\n"
-"    The azimuth angle of the catalog points in radians.\n"
+"theta_a : ndarray\n"
+"    Zenith angle in radians.\n"
+"phi_a : ndarray\n" \
+"    Azimuth in radians.\n"
+"theta_b : ndarray\n"
+"    Zenith angle in radians.\n"
+"phi_b : ndarray\n"
+"    Azimuth in radians.\n"
 "ds : float\n"
-"    The search radius in radians.\n\n"
+"    The angular search distance in degrees.\n\n"
 "Returns\n"
 "-------\n"
-"idx : ndarray\n"
-"    Indices of found matches. Returned as a two dimensional array where the first dimension is the"
-" match number and the second dimension corresponds to the two input sets. So for example"
-" the index into the theta_c array corresponding to the third match would be idx[2][1].\n"
-"d : ndarray\n"
-"    Distance in radians for each match found.\n";
-
-static PyObject *
-spherical(PyObject *self, PyObject *args)
-{
-  PyArrayObject *theta_c = NULL;
-  PyArrayObject *phi_c = NULL;
-  PyArrayObject *theta_s = NULL;
-  PyArrayObject *phi_s = NULL;
-  PyArrayObject *py_idx = NULL;
-  PyArrayObject *py_dst = NULL;
-
-  point_t **catalog = NULL;
-  point_t *match = NULL;
-  point_t search;
-  node_t *tree = NULL;
-
-  int_t i = 0;
-  int_t j = 0;
-  int_t k = 0;
-  int_t nresults = 0;
-  int_t nmatch = 0;
-  real_t st = 0;
-  real_t ds = 0;
-  int_t *idx = NULL;
-  real_t *dst = NULL;
-  real_t *values = NULL;
-  npy_intp shape[2];
-  int_t N_tc, N_pc;
-  int_t N_ts, N_ps;
-  int_t npool = 0;
-
-  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
-        &PyArray_Type, &theta_s, &PyArray_Type, &phi_s,
-        &PyArray_Type, &theta_c, &PyArray_Type, &phi_c,
-        &ds)) return NULL;
-
-  ds = 2 * sin(ds / 2);
-  ds = ds * ds;
-
-  if (!theta_c)
-  {
-    PyErr_SetString(PyExc_TypeError, "theta_c has an invalid type.");
-    return NULL;
-  }
-  if (!phi_c)
-  {
-    PyErr_SetString(PyExc_TypeError, "phi_c has an invalid type.");
-    return NULL;
-  }
-  if (!theta_s)
-  {
-    PyErr_SetString(PyExc_TypeError, "theta_s has an invalid type.");
-    return NULL;
-  }
-  if (!phi_s)
-  {
-    PyErr_SetString(PyExc_TypeError, "phi_s has an invalid type.");
-    return NULL;
-  }
-
-  N_tc = theta_c->dimensions[0];
-  N_pc = phi_c->dimensions[0];
-
-  N_ts = theta_s->dimensions[0];
-  N_ps = phi_s->dimensions[0];
-
-  if (N_tc != N_pc)
-  {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
-  }
-
-  if (N_ts != N_ps)
-  {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
-  }
-
-  if (!(values = (real_t*) malloc(3 * N_tc * sizeof(real_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
-    return NULL;
-  }
-
-  if (!(catalog = malloc(N_tc * sizeof(point_t*))) || !(*catalog = malloc(N_tc * sizeof(point_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
-    return NULL;
-  }
-
-  for (i=0; i<N_tc; i++)
-  {
-    catalog[i] = catalog[0] + i;
-    catalog[i]->id = i;
-    catalog[i]->value = values + 3 * i;
-
-    st = sin(*(real_t *)(theta_c->data + i*theta_c->strides[0]));
-    catalog[i]->value[0] = st * cos(*(real_t *)(phi_c->data + i*phi_c->strides[0]));
-    catalog[i]->value[1] = st * sin(*(real_t *)(phi_c->data + i*phi_c->strides[0]));
-    catalog[i]->value[2] = cos(*(real_t *)(theta_c->data + i*theta_c->strides[0]));
-  }
-
-  if (!(tree = (node_t*) malloc(N_tc * sizeof(node_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
-    return NULL;
-  }
-
-  tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, N_tc, 0, &npool);
-
-  if (!(search.value = malloc(3 * sizeof(real_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
-    return NULL;
-  }
-
-  for (i=0; i<N_ts; i++)
-  {
-    search.id = i;
-
-    st = sin(*(real_t *)(theta_s->data + i*theta_s->strides[0]));
-    search.value[0] = st * cos(*(real_t *)(phi_s->data + i*phi_s->strides[0]));
-    search.value[1] = st * sin(*(real_t *)(phi_s->data + i*phi_s->strides[0]));
-    search.value[2] = cos(*(real_t *)(theta_s->data + i*theta_s->strides[0]));
-
-    match = NULL;
-    nmatch = k3m_in_range(tree, &match, &search, ds);
-
-    if (nmatch)
-    {
-      nresults += nmatch;
-
-      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
-      if (!(dst = realloc(dst, nresults * sizeof(real_t))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
-    }
-
-    while (match)
-    {
-      idx[j] = search.id;
-      j++;
-      idx[j] = match->id;
-      j++;
-      dst[k] = 2 * asin(sqrt(match->ds) / 2);
-      k++;
-      match = match->neighbour;
-    }
-    j = 2 * nresults;
-  }
-
-  free(search.value);
-  free(values);
-  free(catalog);
-  free(tree);
-
-  shape[0] = nresults;
-  shape[1] = 2;
-
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
-  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
-
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
-  PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
-
-  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
-}
-
-static char celestial_doc[] =
-"(idx, d) = k3match.celestial(ra_s, dec_s, ra_c, dec_c, ds)\n\n"
-"Find all matches on the celestial sphere between two sets of points (ra_s, dec_s) and (ra_c, dec_c)"
-"within a given radius ds.\n\n"
-"Note that for maximum execution speed the array with catalog points should be the longest.\n\n"
-"Parameters\n"
-"----------\n"
-"ra_s : ndarray\n" \
-"    Right ascension of the search points in degrees.\n"
-"dec_s : ndarray\n"
-"    Declination of the search points in degrees.\n"
-"ra_c : ndarray\n"
-"    Right ascension of the catalog points in degrees.\n"
-"dec_c : ndarray\n"
-"    Declination of the catalog points in degrees.\n"
-"ds : float\n"
-"    The search radius in degrees.\n\n"
-"Returns\n"
-"-------\n"
-"idx : ndarray\n"
-"    Indices of found matches. Returned as a two dimensional array where the first dimension is the"
-" match number and the second dimension corresponds to the two input sets. So for example"
-" the index into the ra_c array corresponding to the third match would be idx[2][1].\n"
+"idx_a : ndarray\n"
+"    Indices of found matches in array a\n"
+"idx_b : ndarray\n"
+"    Indices of found matches in array b\n"
 "d : ndarray\n"
 "    Distance in degrees for each match found.\n";
 
 static PyObject *
-celestial(PyObject *self, PyObject *args)
+spherical(PyObject *self, PyObject *args)
 {
-  PyArrayObject *ra_c = NULL;
-  PyArrayObject *dec_c = NULL;
-  PyArrayObject *ra_s = NULL;
-  PyArrayObject *dec_s = NULL;
-  PyArrayObject *py_idx = NULL;
-  PyArrayObject *py_dst = NULL;
-
-  point_t **catalog = NULL;
-  point_t *match = NULL;
-  point_t search;
-  node_t *tree = NULL;
-
-  int_t i = 0;
-  int_t j = 0;
-  int_t k = 0;
-  int_t nresults = 0;
-  int_t nmatch = 0;
-  real_t st = 0;
-  real_t ds = 0;
-  int_t *idx = NULL;
-  real_t *dst = NULL;
-  real_t *values = NULL;
-  npy_intp shape[2];
-  int_t N_tc, N_pc;
-  int_t N_ts, N_ps;
-  int_t npool = 0;
-
-  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
-        &PyArray_Type, &ra_s, &PyArray_Type, &dec_s,
-        &PyArray_Type, &ra_c, &PyArray_Type, &dec_c,
-        &ds)) return NULL;
-
-  ds = 2 * sin( RADIANS(ds) / 2);
-  ds = ds * ds;
-
-  if (!dec_c)
-  {
-    PyErr_SetString(PyExc_TypeError, "dec_c has an invalid type.");
-    return NULL;
-  }
-  if (!ra_c)
-  {
-    PyErr_SetString(PyExc_TypeError, "ra_c has an invalid type.");
-    return NULL;
-  }
-  if (!dec_s)
-  {
-    PyErr_SetString(PyExc_TypeError, "dec_s has an invalid type.");
-    return NULL;
-  }
-  if (!ra_s)
-  {
-    PyErr_SetString(PyExc_TypeError, "ra_s has an invalid type.");
-    return NULL;
-  }
-
-  N_tc = dec_c->dimensions[0];
-  N_pc = ra_c->dimensions[0];
-
-  N_ts = dec_s->dimensions[0];
-  N_ps = ra_s->dimensions[0];
-
-  if (N_tc != N_pc)
-  {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
-  }
-
-  if (N_ts != N_ps)
-  {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
-  }
-
-  if (!(values = (real_t*) malloc(3 * N_tc * sizeof(real_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
-    return NULL;
-  }
-
-  if (!(catalog = malloc(N_tc * sizeof(point_t*))) || !(*catalog = malloc(N_tc * sizeof(point_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
-    return NULL;
-  }
-
-  for (i=0; i<N_tc; i++)
-  {
-    catalog[i] = catalog[0] + i;
-    catalog[i]->id = i;
-    catalog[i]->value = values + 3 * i;
-
-    st = sin( RADIANS(*(real_t *)(dec_c->data + i*dec_c->strides[0])) );
-    catalog[i]->value[0] = st * cos( RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0])) );
-    catalog[i]->value[1] = st * sin( RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0])) );
-    catalog[i]->value[2] = cos( RADIANS(*(real_t *)(dec_c->data + i*dec_c->strides[0])) );
-  }
-
-  if (!(tree = (node_t*) malloc(N_tc * sizeof(node_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
-    return NULL;
-  }
-
-  tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, N_tc, 0, &npool);
-
-  if (!(search.value = malloc(3 * sizeof(real_t))))
-  {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
-    return NULL;
-  }
-
-  for (i=0; i<N_ts; i++)
-  {
-    search.id = i;
-
-    st = sin( RADIANS(*(real_t *)(dec_s->data + i*dec_s->strides[0])) );
-    search.value[0] = st * cos( RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0])) );
-    search.value[1] = st * sin( RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0])) );
-    search.value[2] = cos( RADIANS(*(real_t *)(dec_s->data + i*dec_s->strides[0])) );
-
-    match = NULL;
-    nmatch = k3m_in_range(tree, &match, &search, ds);
-
-    if (nmatch)
-    {
-      nresults += nmatch;
-
-      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
-      if (!(dst = realloc(dst, nresults * sizeof(real_t))))
-      {
-        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
-      }
-    }
-
-    while (match)
-    {
-      idx[j] = search.id;
-      j++;
-      idx[j] = match->id;
-      j++;
-      dst[k] = DEGREES(2 * asin(sqrt(match->ds) / 2));
-      k++;
-      match = match->neighbour;
-    }
-    j = 2 * nresults;
-  }
-
-  free(search.value);
-  free(values);
-  free(catalog);
-  free(tree);
-
-  shape[0] = nresults;
-  shape[1] = 2;
-
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
-  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
-
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
-  PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
-
-  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
-}
-
-static PyObject *
-celestial_new(PyObject *self, PyObject *args)
-{
-  PyArrayObject *s = NULL;
-  PyArrayObject *c = NULL;
-  PyArrayObject *py_idx = NULL;
+  PyArrayObject *phi_a = NULL;
+  PyArrayObject *theta_a = NULL;
+  PyArrayObject *phi_b = NULL;
+  PyArrayObject *theta_b = NULL;
+  PyArrayObject *phi_c = NULL;
+  PyArrayObject *theta_c = NULL;
+  PyArrayObject *phi_s = NULL;
+  PyArrayObject *theta_s = NULL;
+  PyArrayObject *py_idx_s = NULL;
+  PyArrayObject *py_idx_c = NULL;
   PyArrayObject *py_dst = NULL;
 
   real_t theta, phi;
@@ -441,75 +74,108 @@ celestial_new(PyObject *self, PyObject *args)
   int_t nmatch = 0;
   real_t st = 0;
   real_t ds = 0;
-  int_t *idx = NULL;
+  int_t *idx_s = NULL;
+  int_t *idx_c = NULL;
   real_t *dst = NULL;
   real_t *values = NULL;
-  npy_intp shape[2];
+  npy_intp shape[1];
+  int_t N_c, N_s;
   int_t npool = 0;
 
-  if (!PyArg_ParseTuple(args, "O!O!d",
-        &PyArray_Type, &s, &PyArray_Type, &c,
+  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
+        &PyArray_Type, &theta_a, &PyArray_Type, &phi_a,
+        &PyArray_Type, &theta_b, &PyArray_Type, &phi_b,
         &ds)) return NULL;
 
-  ds = 2 * sin( RADIANS(ds) / 2);
+  ds = 2 * sin(ds / 2);
   ds = ds * ds;
 
-  if (!s)
+  if (!theta_a)
   {
-    PyErr_SetString(PyExc_TypeError, "s has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "theta_a has an invalid type.");
     return NULL;
   }
-  if (!c)
+  if (!phi_a)
   {
-    PyErr_SetString(PyExc_TypeError, "c has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "phi_a has an invalid type.");
     return NULL;
   }
-  if (s->nd != 2 || s->dimensions[1] != 2)
+  if (!theta_b)
   {
-    PyErr_SetString(PyExc_TypeError, "s has an invalid shape.");
+    PyErr_SetString(PyExc_TypeError, "theta_b has an invalid type.");
     return NULL;
   }
-  if (c->nd != 2 || c->dimensions[1] != 2)
+  if (!phi_b)
   {
-    PyErr_SetString(PyExc_TypeError, "c has an invalid shape.");
+    PyErr_SetString(PyExc_TypeError, "phi_b has an invalid type.");
     return NULL;
   }
 
-  if (!(values = (real_t*) malloc(3 * c->dimensions[0] * sizeof(real_t))))
+  if (theta_a->nd != 1 || phi_a->nd != 1 || theta_a->dimensions[0] != phi_a->dimensions[0])
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
+
+  if (theta_b->nd != 1 || phi_b->nd != 1 || theta_b->dimensions[0] != phi_b->dimensions[0])
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
+
+  if (phi_a->dimensions[0] > phi_b->dimensions[0])
+  {
+    phi_c = phi_a;
+    theta_c = theta_a;
+    phi_s = phi_b;
+    theta_s = theta_b;
+  }
+  else
+  {
+    phi_c = phi_b;
+    theta_c = theta_b;
+    phi_s = phi_a;
+    theta_s = theta_a;
+  }
+
+  N_c = phi_c->dimensions[0];
+  N_s = phi_s->dimensions[0];
+
+  if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
   }
 
-  if (!(catalog = malloc(c->dimensions[0] * sizeof(point_t*))) || !(*catalog = malloc(c->dimensions[0] * sizeof(point_t))))
+  if (!(catalog = malloc(N_c * sizeof(point_t*))) || !(*catalog = malloc(N_c * sizeof(point_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
     return NULL;
   }
 
-  for (i=0; i<c->dimensions[0]; i++)
+  for (i=0; i<N_c; i++)
   {
     catalog[i] = catalog[0] + i;
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
 
-    theta = RADIANS(*(real_t *)(c->data + i*c->strides[0] + c->strides[1]));
-    phi = RADIANS(*(real_t *)(c->data + i*c->strides[0]));
+    theta = *(real_t *)(theta_c->data + i*theta_c->strides[0]);
+    phi = *(real_t *)(phi_c->data + i*phi_c->strides[0]);
 
     st = sin(theta);
     catalog[i]->value[0] = st * cos(phi);
     catalog[i]->value[1] = st * sin(phi);
-    catalog[i]->value[2] = cos(theta);
+    catalog[i]->value[2] = cos(phi);
   }
 
-  if (!(tree = (node_t*) malloc(c->dimensions[0] * sizeof(node_t))))
+  if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
     return NULL;
   }
 
   tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, c->dimensions[0], 0, &npool);
+  k3m_build_balanced_tree(tree, catalog, N_c, 0, &npool);
 
   if (!(search.value = malloc(3 * sizeof(real_t))))
   {
@@ -517,17 +183,17 @@ celestial_new(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  for (i=0; i<s->dimensions[0]; i++)
+  for (i=0; i<N_s; i++)
   {
     search.id = i;
 
-    theta = RADIANS(*(real_t *)(s->data + i*s->strides[0] + s->strides[1]));
-    phi = RADIANS(*(real_t *)(s->data + i*s->strides[0]));
+    theta = *(real_t *)(theta_s->data + i*theta_s->strides[0]);
+    phi = *(real_t *)(phi_s->data + i*phi_s->strides[0]);
 
     st = sin(theta);
     search.value[0] = st * cos(phi);
     search.value[1] = st * sin(phi);
-    search.value[2] = cos(theta);
+    search.value[2] = cos(phi);
 
     match = NULL;
     nmatch = k3m_in_range(tree, &match, &search, ds);
@@ -536,7 +202,12 @@ celestial_new(PyObject *self, PyObject *args)
     {
       nresults += nmatch;
 
-      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
+      if (!(idx_s = realloc(idx_s, nresults * sizeof(int_t))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+      if (!(idx_c = realloc(idx_c, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
         return NULL;
@@ -550,15 +221,14 @@ celestial_new(PyObject *self, PyObject *args)
 
     while (match)
     {
-      idx[j] = search.id;
+      idx_s[j] = search.id;
+      idx_c[j] = match->id;
       j++;
-      idx[j] = match->id;
-      j++;
-      dst[k] = DEGREES(2 * asin(sqrt(match->ds) / 2));
+      dst[k] = 2 * asin(sqrt(match->ds) / 2);
       k++;
       match = match->neighbour;
     }
-    j = 2 * nresults;
+    j = nresults;
   }
 
   free(search.value);
@@ -567,24 +237,68 @@ celestial_new(PyObject *self, PyObject *args)
   free(tree);
 
   shape[0] = nresults;
-  shape[1] = 2;
 
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
-  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_s);
+  PyArray_UpdateFlags(py_idx_s, NPY_OWNDATA);
+
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_c);
+  PyArray_UpdateFlags(py_idx_c, NPY_OWNDATA);
 
   py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
   PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
 
-  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
+  if (phi_a->dimensions[0] > phi_b->dimensions[0])
+  {
+    return Py_BuildValue("OOO", PyArray_Return(py_idx_c), PyArray_Return(py_idx_s), PyArray_Return(py_dst));
+  }
+  else
+  {
+    return Py_BuildValue("OOO", PyArray_Return(py_idx_s), PyArray_Return(py_idx_c), PyArray_Return(py_dst));
+  }
 }
 
+static char celestial_doc[] =
+"(idx_a, idx_b, d) = k3match.celestial(ra_a, dec_a, ra_b, dec_b, ds)\n\n"
+"Find all matches on the celestial sphere between two sets of points (ra_a, dec_a) and (ra_b, dec_b)"
+"within a given angular distance ds.\n\n"
+"Ordering of the arrays is not important since binary tree will be built automatically for longest array.\n\n"
+"Parameters\n"
+"----------\n"
+"ra_a : ndarray\n" \
+"    Right ascension in degrees.\n"
+"dec_a : ndarray\n"
+"    Declination in degrees.\n"
+"ra_b : ndarray\n"
+"    Right ascension in degrees.\n"
+"dec_b : ndarray\n"
+"    Declination in degrees.\n"
+"ds : float\n"
+"    The angular search distance in degrees.\n\n"
+"Returns\n"
+"-------\n"
+"idx_a : ndarray\n"
+"    Indices of found matches in array a\n"
+"idx_b : ndarray\n"
+"    Indices of found matches in array b\n"
+"d : ndarray\n"
+"    Distance in degrees for each match found.\n";
+
 static PyObject *
-cartesian(PyObject *self, PyObject *args)
+celestial(PyObject *self, PyObject *args)
 {
-  PyArrayObject *s = NULL;
-  PyArrayObject *c = NULL;
-  PyArrayObject *py_idx = NULL;
+  PyArrayObject *ra_a = NULL;
+  PyArrayObject *dec_a = NULL;
+  PyArrayObject *ra_b = NULL;
+  PyArrayObject *dec_b = NULL;
+  PyArrayObject *ra_c = NULL;
+  PyArrayObject *dec_c = NULL;
+  PyArrayObject *ra_s = NULL;
+  PyArrayObject *dec_s = NULL;
+  PyArrayObject *py_idx_s = NULL;
+  PyArrayObject *py_idx_c = NULL;
   PyArrayObject *py_dst = NULL;
+
+  real_t ra, dec;
 
   point_t **catalog = NULL;
   point_t *match = NULL;
@@ -598,70 +312,108 @@ cartesian(PyObject *self, PyObject *args)
   int_t nmatch = 0;
   real_t st = 0;
   real_t ds = 0;
-  int_t *idx = NULL;
+  int_t *idx_s = NULL;
+  int_t *idx_c = NULL;
   real_t *dst = NULL;
   real_t *values = NULL;
-  npy_intp shape[2];
+  npy_intp shape[1];
+  int_t N_c, N_s;
   int_t npool = 0;
 
-  if (!PyArg_ParseTuple(args, "O!O!d",
-        &PyArray_Type, &s, &PyArray_Type, &c,
+  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
+        &PyArray_Type, &ra_a, &PyArray_Type, &dec_a,
+        &PyArray_Type, &ra_b, &PyArray_Type, &dec_b,
         &ds)) return NULL;
 
+  ds = 2 * sin( RADIANS(ds) / 2);
   ds = ds * ds;
 
-  if (!s)
+  if (!dec_a)
   {
-    PyErr_SetString(PyExc_TypeError, "s has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "dec_a has an invalid type.");
     return NULL;
   }
-  if (!c)
+  if (!ra_a)
   {
-    PyErr_SetString(PyExc_TypeError, "c has an invalid type.");
+    PyErr_SetString(PyExc_TypeError, "ra_a has an invalid type.");
     return NULL;
   }
-  if (s->nd != 2 || s->dimensions[1] != 3)
+  if (!dec_b)
   {
-    PyErr_SetString(PyExc_TypeError, "s has an invalid shape.");
+    PyErr_SetString(PyExc_TypeError, "dec_b has an invalid type.");
     return NULL;
   }
-  if (c->nd != 2 || c->dimensions[1] != 3)
+  if (!ra_b)
   {
-    PyErr_SetString(PyExc_TypeError, "c has an invalid shape.");
+    PyErr_SetString(PyExc_TypeError, "ra_b has an invalid type.");
     return NULL;
   }
 
-  if (!(values = (real_t*) malloc(3 * c->dimensions[0] * sizeof(real_t))))
+  if (dec_a->nd != 1 || ra_a->nd != 1 || dec_a->dimensions[0] != ra_a->dimensions[0])
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
+
+  if (dec_b->nd != 1 || ra_b->nd != 1 || dec_b->dimensions[0] != ra_b->dimensions[0])
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
+    return NULL;
+  }
+
+  if (ra_a->dimensions[0] > ra_b->dimensions[0])
+  {
+    ra_c = ra_a;
+    dec_c = dec_a;
+    ra_s = ra_b;
+    dec_s = dec_b;
+  }
+  else
+  {
+    ra_c = ra_b;
+    dec_c = dec_b;
+    ra_s = ra_a;
+    dec_s = dec_a;
+  }
+
+  N_c = ra_c->dimensions[0];
+  N_s = ra_s->dimensions[0];
+
+  if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
     return NULL;
   }
 
-  if (!(catalog = malloc(c->dimensions[0] * sizeof(point_t*))) || !(*catalog = malloc(c->dimensions[0] * sizeof(point_t))))
+  if (!(catalog = malloc(N_c * sizeof(point_t*))) || !(*catalog = malloc(N_c * sizeof(point_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
     return NULL;
   }
 
-  for (i=0; i<c->dimensions[0]; i++)
+  for (i=0; i<N_c; i++)
   {
     catalog[i] = catalog[0] + i;
     catalog[i]->id = i;
     catalog[i]->value = values + 3 * i;
 
-    catalog[i]->value[0] = *(real_t *)(c->data + i*c->strides[0] + 0 * c->strides[1]);
-    catalog[i]->value[1] = *(real_t *)(c->data + i*c->strides[0] + 1 * c->strides[1]);
-    catalog[i]->value[2] = *(real_t *)(c->data + i*c->strides[0] + 2 * c->strides[1]);
+    ra = RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0]));
+    dec = RADIANS(*(real_t *)(dec_c->data + i*dec_c->strides[0]));
+
+    st = sin(dec);
+    catalog[i]->value[0] = st * cos(ra);
+    catalog[i]->value[1] = st * sin(ra);
+    catalog[i]->value[2] = cos(dec);
   }
 
-  if (!(tree = (node_t*) malloc(c->dimensions[0] * sizeof(node_t))))
+  if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
     return NULL;
   }
 
   tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, c->dimensions[0], 0, &npool);
+  k3m_build_balanced_tree(tree, catalog, N_c, 0, &npool);
 
   if (!(search.value = malloc(3 * sizeof(real_t))))
   {
@@ -669,13 +421,17 @@ cartesian(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  for (i=0; i<s->dimensions[0]; i++)
+  for (i=0; i<N_s; i++)
   {
     search.id = i;
 
-    search.value[0] = *(real_t *)(s->data + i*s->strides[0] + 0 * s->strides[1]);
-    search.value[1] = *(real_t *)(s->data + i*s->strides[0] + 1 * s->strides[1]);
-    search.value[2] = *(real_t *)(s->data + i*s->strides[0] + 2 * s->strides[1]);
+    ra = RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0]));
+    dec = RADIANS(*(real_t *)(dec_s->data + i*dec_s->strides[0]));
+
+    st = sin(dec);
+    search.value[0] = st * cos(ra);
+    search.value[1] = st * sin(ra);
+    search.value[2] = cos(dec);
 
     match = NULL;
     nmatch = k3m_in_range(tree, &match, &search, ds);
@@ -684,7 +440,12 @@ cartesian(PyObject *self, PyObject *args)
     {
       nresults += nmatch;
 
-      if (!(idx = realloc(idx, 2 * nresults * sizeof(int_t))))
+      if (!(idx_s = realloc(idx_s, nresults * sizeof(int_t))))
+      {
+        PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
+        return NULL;
+      }
+      if (!(idx_c = realloc(idx_c, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
         return NULL;
@@ -698,15 +459,14 @@ cartesian(PyObject *self, PyObject *args)
 
     while (match)
     {
-      idx[j] = search.id;
+      idx_s[j] = search.id;
+      idx_c[j] = match->id;
       j++;
-      idx[j] = match->id;
-      j++;
-      dst[k] = sqrt(match->ds);
+      dst[k] = DEGREES(2 * asin(sqrt(match->ds) / 2));
       k++;
       match = match->neighbour;
     }
-    j = 2 * nresults;
+    j = nresults;
   }
 
   free(search.value);
@@ -715,22 +475,29 @@ cartesian(PyObject *self, PyObject *args)
   free(tree);
 
   shape[0] = nresults;
-  shape[1] = 2;
 
-  py_idx = (PyArrayObject *) PyArray_SimpleNewFromData(2, shape, NPY_ULONG, idx);
-  PyArray_UpdateFlags(py_idx, NPY_OWNDATA);
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_s);
+  PyArray_UpdateFlags(py_idx_s, NPY_OWNDATA);
+
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_c);
+  PyArray_UpdateFlags(py_idx_c, NPY_OWNDATA);
 
   py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
   PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
 
-  return Py_BuildValue("OO", PyArray_Return(py_idx), PyArray_Return(py_dst));
+  if (ra_a->dimensions[0] > ra_b->dimensions[0])
+  {
+    return Py_BuildValue("OOO", PyArray_Return(py_idx_c), PyArray_Return(py_idx_s), PyArray_Return(py_dst));
+  }
+  else
+  {
+    return Py_BuildValue("OOO", PyArray_Return(py_idx_s), PyArray_Return(py_idx_c), PyArray_Return(py_dst));
+  }
 }
 
 static PyMethodDef K3MatchMethods[] = {
   {"spherical", spherical, METH_VARARGS, spherical_doc},
   {"celestial", celestial, METH_VARARGS, celestial_doc},
-  {"cartesian", cartesian, METH_VARARGS, spherical_doc},
-  {"celestial_new", celestial_new, METH_VARARGS, celestial_doc},
   {NULL, NULL, 0, NULL}
 };
 

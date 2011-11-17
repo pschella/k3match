@@ -1,18 +1,20 @@
 import numpy as np
-from k3match import spherical
+import k3match
 
-N_catalog = 1e6
-N_search = 1e6
-ds = np.pi / (180 * 60)
+na = 1e1
+nb = 1e7
+ds = 1./60.
 
-theta_a = np.pi * np.random.rand(N_catalog)
-phi_a = 2 * np.pi * np.random.rand(N_catalog)
+print "ds =", ds
 
-theta_b = np.pi * np.random.rand(N_search)
-phi_b = 2 * np.pi * np.random.rand(N_search)
+ra_a = np.random.rand(na) * 360
+dec_a = np.random.rand(na) * 180 - 90
 
-idx, d = spherical(theta_a, phi_a, theta_b, phi_b, ds)
+ra_b = np.random.rand(nb) * 360
+dec_b = np.random.rand(nb) * 180 - 90
 
-for i in range(idx.shape[0]):
-    print idx[i][0], idx[i][1], d[i]
+idx_a, idx_b, d = k3match.celestial(ra_a, dec_a, ra_b, dec_b, ds)
+
+for i in range(idx_a.shape[0]):
+    print idx_a[i], idx_b[i], d[i]
 
