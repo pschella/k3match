@@ -50,83 +50,59 @@ static char spherical_doc[] =
 static PyObject *
 spherical(PyObject *self, PyObject *args)
 {
-  PyArrayObject *phi_a = NULL;
-  PyArrayObject *theta_a = NULL;
-  PyArrayObject *phi_b = NULL;
-  PyArrayObject *theta_b = NULL;
-  PyArrayObject *phi_c = NULL;
-  PyArrayObject *theta_c = NULL;
-  PyArrayObject *phi_s = NULL;
-  PyArrayObject *theta_s = NULL;
-  PyArrayObject *py_idx_s = NULL;
-  PyArrayObject *py_idx_c = NULL;
-  PyArrayObject *py_dst = NULL;
+  PyObject *in_theta_a = NULL, *in_phi_a = NULL, *in_theta_b = NULL, *in_phi_b = NULL;
+  PyArrayObject *theta_a = NULL, *phi_a = NULL, *theta_b = NULL, *phi_b = NULL;
+  PyArrayObject *theta_c = NULL, *phi_c = NULL, *theta_s = NULL, *phi_s = NULL;
+  PyArrayObject *py_idx_s = NULL, *py_idx_c = NULL, *py_dst = NULL;
 
-  real_t theta, phi;
-
-  point_t **catalog = NULL;
+  point_t *cpoint = NULL;
+  point_t **cpoint_p = NULL;
   point_t *match = NULL;
-  point_t search;
+  point_t spoint; spoint.value = NULL;
   node_t *tree = NULL;
 
-  int_t i = 0;
-  int_t j = 0;
-  int_t k = 0;
-  int_t nresults = 0;
-  int_t nmatch = 0;
-  real_t st = 0;
-  real_t ds = 0;
-  int_t *idx_s = NULL;
-  int_t *idx_c = NULL;
-  real_t *dst = NULL;
-  real_t *values = NULL;
-  npy_intp shape[1];
-  int_t N_c, N_s;
-  int_t npool = 0;
+  int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
+  real_t st = 0, ds = 0, theta = 0, phi = 0;
 
-  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
-        &PyArray_Type, &theta_a, &PyArray_Type, &phi_a,
-        &PyArray_Type, &theta_b, &PyArray_Type, &phi_b,
-        &ds)) return NULL;
+  double *theta_p = NULL, *phi_p = NULL;
+
+  int_t *idx_s = NULL, *idx_c = NULL;
+  real_t *dst = NULL, *values = NULL;
+
+  if (!PyArg_ParseTuple(args, "OOOOd", &in_theta_a, &in_phi_a, &in_theta_b, &in_phi_b, &ds)) return NULL;
 
   ds = 2 * sin(ds / 2);
   ds = ds * ds;
 
-  if (!theta_a)
+  theta_a = (PyArrayObject*) PyArray_FROM_OTF(in_theta_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  phi_a = (PyArrayObject*) PyArray_FROM_OTF(in_phi_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  theta_b = (PyArrayObject*) PyArray_FROM_OTF(in_theta_b, NPY_DOUBLE, NPY_IN_ARRAY);
+  phi_b = (PyArrayObject*) PyArray_FROM_OTF(in_phi_b, NPY_DOUBLE, NPY_IN_ARRAY);
+
+  if (!theta_a || !phi_a || !theta_b || !phi_b)
   {
-    PyErr_SetString(PyExc_TypeError, "theta_a has an invalid type.");
-    return NULL;
-  }
-  if (!phi_a)
-  {
-    PyErr_SetString(PyExc_TypeError, "phi_a has an invalid type.");
-    return NULL;
-  }
-  if (!theta_b)
-  {
-    PyErr_SetString(PyExc_TypeError, "theta_b has an invalid type.");
-    return NULL;
-  }
-  if (!phi_b)
-  {
-    PyErr_SetString(PyExc_TypeError, "phi_b has an invalid type.");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "could not convert input to ndarray");
+    goto fail;
   }
 
-  if (theta_a->nd != 1 || phi_a->nd != 1 || theta_a->dimensions[0] != phi_a->dimensions[0])
+  if (!(ISVECTOR(theta_a)) || !(ISVECTOR(phi_a)) || !(ISVECTOR(theta_b)) || !(ISVECTOR(phi_b)))
   {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct shape");
   }
 
-  if (theta_b->nd != 1 || phi_b->nd != 1 || theta_b->dimensions[0] != phi_b->dimensions[0])
+  if (SIZE(theta_a) != SIZE(phi_a) || SIZE(theta_b) != SIZE(phi_b))
   {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct size");
+    goto fail;
   }
 
-  if (phi_a->dimensions[0] > phi_b->dimensions[0])
+  N_a = SIZE(theta_a);
+  N_b = SIZE(theta_b);
+
+  if (N_a > N_b)
   {
+    N_c = N_a;
+    N_s = N_b;
     phi_c = phi_a;
     theta_c = theta_a;
     phi_s = phi_b;
@@ -134,71 +110,74 @@ spherical(PyObject *self, PyObject *args)
   }
   else
   {
+    N_c = N_b;
+    N_s = N_a;
     phi_c = phi_b;
     theta_c = theta_b;
     phi_s = phi_a;
     theta_s = theta_a;
   }
 
-  N_c = phi_c->dimensions[0];
-  N_s = phi_s->dimensions[0];
-
   if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
-    return NULL;
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
+    goto fail;
   }
 
-  if (!(catalog = malloc(N_c * sizeof(point_t*))) || !(*catalog = malloc(N_c * sizeof(point_t))))
+  if (!(cpoint_p = malloc(N_c * sizeof(point_t*))) || !(cpoint = malloc(N_c * sizeof(point_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
-    return NULL;
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
+    goto fail;
   }
 
+  theta_p = (double *)(theta_c->data);
+  phi_p = (double *)(phi_c->data);
   for (i=0; i<N_c; i++)
   {
-    catalog[i] = catalog[0] + i;
-    catalog[i]->id = i;
-    catalog[i]->value = values + 3 * i;
+    cpoint_p[i] = cpoint + i;
+    cpoint_p[i]->id = i;
+    cpoint_p[i]->value = values + 3 * i;
 
-    theta = *(real_t *)(theta_c->data + i*theta_c->strides[0]);
-    phi = *(real_t *)(phi_c->data + i*phi_c->strides[0]);
+    theta = *theta_p++;
+    phi = *phi_p++;
 
     st = sin(theta);
-    catalog[i]->value[0] = st * cos(phi);
-    catalog[i]->value[1] = st * sin(phi);
-    catalog[i]->value[2] = cos(phi);
+    cpoint_p[i]->value[0] = st * cos(phi);
+    cpoint_p[i]->value[1] = st * sin(phi);
+    cpoint_p[i]->value[2] = cos(theta);
   }
 
   if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
-    return NULL;
+    goto fail;
   }
 
   tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, N_c, 0, &npool);
+  k3m_build_balanced_tree(tree, cpoint_p, N_c, 0, &npool);
 
-  if (!(search.value = malloc(3 * sizeof(real_t))))
+  if (!(spoint.value = malloc(3 * sizeof(real_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
-    return NULL;
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for search point.");
+    goto fail;
   }
 
+  theta_p = (double *)(theta_s->data);
+  phi_p = (double *)(phi_s->data);
   for (i=0; i<N_s; i++)
   {
-    search.id = i;
+    spoint.id = i;
 
-    theta = *(real_t *)(theta_s->data + i*theta_s->strides[0]);
-    phi = *(real_t *)(phi_s->data + i*phi_s->strides[0]);
+    theta = *theta_p++;
+    phi = *phi_p++;
 
     st = sin(theta);
-    search.value[0] = st * cos(phi);
-    search.value[1] = st * sin(phi);
-    search.value[2] = cos(phi);
+    spoint.value[0] = st * cos(phi);
+    spoint.value[1] = st * sin(phi);
+    spoint.value[2] = cos(theta);
 
     match = NULL;
-    nmatch = k3m_in_range(tree, &match, &search, ds);
+    nmatch = k3m_in_range(tree, &match, &spoint, ds);
 
     if (nmatch)
     {
@@ -207,23 +186,23 @@ spherical(PyObject *self, PyObject *args)
       if (!(idx_s = realloc(idx_s, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
       if (!(idx_c = realloc(idx_c, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
       if (!(dst = realloc(dst, nresults * sizeof(real_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
     }
 
     while (match)
     {
-      idx_s[j] = search.id;
+      idx_s[j] = spoint.id;
       idx_c[j] = match->id;
       j++;
       dst[k] = 2 * asin(sqrt(match->ds) / 2);
@@ -233,30 +212,49 @@ spherical(PyObject *self, PyObject *args)
     j = nresults;
   }
 
-  free(search.value);
+  free(spoint.value);
   free(values);
-  free(catalog);
+  free(cpoint_p);
+  free(cpoint);
   free(tree);
 
-  shape[0] = nresults;
-
-  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_s);
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_s);
   PyArray_UpdateFlags(py_idx_s, NPY_OWNDATA);
 
-  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_c);
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_c);
   PyArray_UpdateFlags(py_idx_c, NPY_OWNDATA);
 
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
+  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_DOUBLE, dst);
   PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
 
-  if (phi_a->dimensions[0] > phi_b->dimensions[0])
+  Py_DECREF(theta_a);
+  Py_DECREF(phi_a);
+  Py_DECREF(theta_b);
+  Py_DECREF(phi_b);
+
+  if (N_a > N_b)
   {
-    return Py_BuildValue("OOO", PyArray_Return(py_idx_c), PyArray_Return(py_idx_s), PyArray_Return(py_dst));
+    return Py_BuildValue("NNN", py_idx_c, py_idx_s, py_dst);
   }
   else
   {
-    return Py_BuildValue("OOO", PyArray_Return(py_idx_s), PyArray_Return(py_idx_c), PyArray_Return(py_dst));
+    return Py_BuildValue("NNN", py_idx_s, py_idx_c, py_dst);
   }
+
+ fail:
+
+    if (spoint.value != NULL) free(spoint.value);
+    if (values != NULL) free(values);
+    if (cpoint_p != NULL) free(cpoint_p);
+    if (cpoint != NULL) free(cpoint);
+    if (tree != NULL) free(tree);
+
+    Py_XDECREF(theta_a);
+    Py_XDECREF(phi_a);
+    Py_XDECREF(theta_b);
+    Py_XDECREF(phi_b);
+
+    return NULL;
 }
 
 static char celestial_doc[] =
