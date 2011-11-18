@@ -296,7 +296,7 @@ celestial(PyObject *self, PyObject *args)
   point_t *cpoint = NULL;
   point_t **cpoint_p = NULL;
   point_t *match = NULL;
-  point_t spoint;
+  point_t spoint; spoint.value = NULL;
   node_t *tree = NULL;
 
   int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
@@ -331,6 +331,7 @@ celestial(PyObject *self, PyObject *args)
   if (SIZE(ra_a) != SIZE(dec_a) || SIZE(ra_b) != SIZE(dec_b))
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct size");
+    goto fail;
   }
 
   N_a = SIZE(ra_a);
@@ -357,13 +358,13 @@ celestial(PyObject *self, PyObject *args)
 
   if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
     goto fail;
   }
 
   if (!(cpoint_p = malloc(N_c * sizeof(point_t*))) || !(cpoint = malloc(N_c * sizeof(point_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for cpoint_p of points.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
     goto fail;
   }
 
@@ -395,7 +396,7 @@ celestial(PyObject *self, PyObject *args)
 
   if (!(spoint.value = malloc(3 * sizeof(real_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of spoint point.");
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for search point.");
     goto fail;
   }
 
