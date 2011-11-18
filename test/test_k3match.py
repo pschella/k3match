@@ -1,8 +1,8 @@
 import numpy as np
 import k3match
 
-na = 1e1
-nb = 1e7
+na = 1e6
+nb = 1e6
 ds = 1./60.
 
 print "ds =", ds

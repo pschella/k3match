@@ -7,6 +7,8 @@
 
 #define RADIANS(d) ((M_PI / 180.0) * (d))
 #define DEGREES(r) ((180.0 / M_PI) * (r))
+#define ISVECTOR(array) ((array)->nd > 1 ? 0 : 1)
+#define SIZE(array) ((array)->nd > 0 ? (array)->dimensions[0] : 1)
 
 static char doc[] =
 "K3Match: A package for fast matching of points in 3D space.\n"
@@ -297,8 +299,10 @@ celestial(PyObject *self, PyObject *args)
   point_t spoint;
   node_t *tree = NULL;
 
-  int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_c = 0, N_s = 0, npool = 0;
+  int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
   real_t st = 0, ds = 0, theta = 0, phi = 0;
+
+  double *theta_p = NULL, *phi_p = NULL;
 
   int_t *idx_s = NULL, *idx_c = NULL;
   real_t *dst = NULL, *values = NULL;
@@ -319,35 +323,37 @@ celestial(PyObject *self, PyObject *args)
     goto fail;
   }
 
-  if (dec_a->nd != 1 || ra_a->nd != 1 || dec_a->dimensions[0] != ra_a->dimensions[0])
+  if (!(ISVECTOR(ra_a)) || !(ISVECTOR(dec_a)) || !(ISVECTOR(ra_b)) || !(ISVECTOR(dec_b)))
   {
-    PyErr_SetString(PyExc_ValueError, "arrays for coordinate a are not the same size");
-    goto fail;
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct shape");
   }
 
-  if (dec_b->nd != 1 || ra_b->nd != 1 || dec_b->dimensions[0] != ra_b->dimensions[0])
+  if (SIZE(ra_a) != SIZE(dec_a) || SIZE(ra_b) != SIZE(dec_b))
   {
-    PyErr_SetString(PyExc_ValueError, "arrays for coordinate b are not the same size");
-    goto fail;
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct size");
   }
 
-  if (ra_a->dimensions[0] > ra_b->dimensions[0])
+  N_a = SIZE(ra_a);
+  N_b = SIZE(ra_b);
+
+  if (N_a > N_b)
   {
-    ra_c = ra_a;
+    N_c = N_a;
+    N_s = N_b;
     dec_c = dec_a;
-    ra_s = ra_b;
+    ra_c = ra_a;
     dec_s = dec_b;
+    ra_s = ra_b;
   }
   else
   {
-    ra_c = ra_b;
+    N_c = N_b;
+    N_s = N_a;
     dec_c = dec_b;
-    ra_s = ra_a;
+    ra_c = ra_b;
     dec_s = dec_a;
+    ra_s = ra_a;
   }
-
-  N_c = ra_c->dimensions[0];
-  N_s = ra_s->dimensions[0];
 
   if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
@@ -361,14 +367,16 @@ celestial(PyObject *self, PyObject *args)
     goto fail;
   }
 
+  theta_p = (double *)(dec_c->data);
+  phi_p = (double *)(ra_c->data);
   for (i=0; i<N_c; i++)
   {
     cpoint_p[i] = cpoint + i;
     cpoint_p[i]->id = i;
     cpoint_p[i]->value = values + 3 * i;
 
-    theta = RADIANS(90. + (*(real_t *)(dec_c->data + i*dec_c->strides[0])));
-    phi = RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0]));
+    theta = RADIANS(90. + *theta_p++);
+    phi = RADIANS(*phi_p++);
 
     st = sin(theta);
     cpoint_p[i]->value[0] = st * cos(phi);
@@ -391,12 +399,14 @@ celestial(PyObject *self, PyObject *args)
     goto fail;
   }
 
+  theta_p = (double *)(dec_s->data);
+  phi_p = (double *)(ra_s->data);
   for (i=0; i<N_s; i++)
   {
     spoint.id = i;
 
-    theta = RADIANS(90. + (*(real_t *)(dec_s->data + i*dec_s->strides[0])));
-    phi = RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0]));
+    theta = RADIANS(90. + *theta_p++);
+    phi = RADIANS(*phi_p++);
 
     st = sin(theta);
     spoint.value[0] = st * cos(phi);
@@ -459,7 +469,7 @@ celestial(PyObject *self, PyObject *args)
   Py_DECREF(ra_b);
   Py_DECREF(dec_b);
 
-  if (ra_a->dimensions[0] > ra_b->dimensions[0])
+  if (N_a > N_b)
   {
     return Py_BuildValue("NNN", py_idx_c, py_idx_s, py_dst);
   }
