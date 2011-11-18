@@ -286,79 +286,49 @@ static char celestial_doc[] =
 static PyObject *
 celestial(PyObject *self, PyObject *args)
 {
-  PyArrayObject *ra_a = NULL;
-  PyArrayObject *dec_a = NULL;
-  PyArrayObject *ra_b = NULL;
-  PyArrayObject *dec_b = NULL;
-  PyArrayObject *ra_c = NULL;
-  PyArrayObject *dec_c = NULL;
-  PyArrayObject *ra_s = NULL;
-  PyArrayObject *dec_s = NULL;
-  PyArrayObject *py_idx_s = NULL;
-  PyArrayObject *py_idx_c = NULL;
-  PyArrayObject *py_dst = NULL;
+  PyObject *in_ra_a = NULL, *in_dec_a = NULL, *in_ra_b = NULL, *in_dec_b = NULL;
+  PyArrayObject *ra_a = NULL, *dec_a = NULL, *ra_b = NULL, *dec_b = NULL;
+  PyArrayObject *ra_c = NULL, *dec_c = NULL, *ra_s = NULL, *dec_s = NULL;
+  PyArrayObject *py_idx_s = NULL, *py_idx_c = NULL, *py_dst = NULL;
 
-  real_t ra, dec;
-
-  point_t **catalog = NULL;
+  point_t *cpoint = NULL;
+  point_t **cpoint_p = NULL;
   point_t *match = NULL;
-  point_t search;
+  point_t spoint;
   node_t *tree = NULL;
 
-  int_t i = 0;
-  int_t j = 0;
-  int_t k = 0;
-  int_t nresults = 0;
-  int_t nmatch = 0;
-  real_t st = 0;
-  real_t ds = 0;
-  int_t *idx_s = NULL;
-  int_t *idx_c = NULL;
-  real_t *dst = NULL;
-  real_t *values = NULL;
-  npy_intp shape[1];
-  int_t N_c, N_s;
-  int_t npool = 0;
+  int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_c = 0, N_s = 0, npool = 0;
+  real_t st = 0, ds = 0, ra = 0, dec = 0;
 
-  if (!PyArg_ParseTuple(args, "O!O!O!O!d",
-        &PyArray_Type, &ra_a, &PyArray_Type, &dec_a,
-        &PyArray_Type, &ra_b, &PyArray_Type, &dec_b,
-        &ds)) return NULL;
+  int_t *idx_s = NULL, *idx_c = NULL;
+  real_t *dst = NULL, *values = NULL;
+
+  if (!PyArg_ParseTuple(args, "OOOOd", &in_ra_a, &in_dec_a, &in_ra_b, &in_dec_b, &ds)) return NULL;
 
   ds = 2 * sin( RADIANS(ds) / 2);
   ds = ds * ds;
 
-  if (!dec_a)
+  ra_a = (PyArrayObject*) PyArray_FROM_OTF(in_ra_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  dec_a = (PyArrayObject*) PyArray_FROM_OTF(in_dec_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  ra_b = (PyArrayObject*) PyArray_FROM_OTF(in_ra_b, NPY_DOUBLE, NPY_IN_ARRAY);
+  dec_b = (PyArrayObject*) PyArray_FROM_OTF(in_dec_b, NPY_DOUBLE, NPY_IN_ARRAY);
+
+  if (!ra_a || !dec_a || !ra_b || !dec_b)
   {
-    PyErr_SetString(PyExc_TypeError, "dec_a has an invalid type.");
-    return NULL;
-  }
-  if (!ra_a)
-  {
-    PyErr_SetString(PyExc_TypeError, "ra_a has an invalid type.");
-    return NULL;
-  }
-  if (!dec_b)
-  {
-    PyErr_SetString(PyExc_TypeError, "dec_b has an invalid type.");
-    return NULL;
-  }
-  if (!ra_b)
-  {
-    PyErr_SetString(PyExc_TypeError, "ra_b has an invalid type.");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "could not convert input to ndarray");
+    goto fail;
   }
 
   if (dec_a->nd != 1 || ra_a->nd != 1 || dec_a->dimensions[0] != ra_a->dimensions[0])
   {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "arrays for coordinate a are not the same size");
+    goto fail;
   }
 
   if (dec_b->nd != 1 || ra_b->nd != 1 || dec_b->dimensions[0] != ra_b->dimensions[0])
   {
-    PyErr_SetString(PyExc_ValueError, "input arrays are not the same size");
-    return NULL;
+    PyErr_SetString(PyExc_ValueError, "arrays for coordinate b are not the same size");
+    goto fail;
   }
 
   if (ra_a->dimensions[0] > ra_b->dimensions[0])
@@ -382,59 +352,59 @@ celestial(PyObject *self, PyObject *args)
   if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of points.");
-    return NULL;
+    goto fail;
   }
 
-  if (!(catalog = malloc(N_c * sizeof(point_t*))) || !(*catalog = malloc(N_c * sizeof(point_t))))
+  if (!(cpoint_p = malloc(N_c * sizeof(point_t*))) || !(cpoint = malloc(N_c * sizeof(point_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog of points.");
-    return NULL;
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for cpoint_p of points.");
+    goto fail;
   }
 
   for (i=0; i<N_c; i++)
   {
-    catalog[i] = catalog[0] + i;
-    catalog[i]->id = i;
-    catalog[i]->value = values + 3 * i;
+    cpoint_p[i] = cpoint + i;
+    cpoint_p[i]->id = i;
+    cpoint_p[i]->value = values + 3 * i;
 
     ra = RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0]));
     dec = RADIANS(*(real_t *)(dec_c->data + i*dec_c->strides[0]));
 
     st = sin(dec);
-    catalog[i]->value[0] = st * cos(ra);
-    catalog[i]->value[1] = st * sin(ra);
-    catalog[i]->value[2] = cos(dec);
+    cpoint_p[i]->value[0] = st * cos(ra);
+    cpoint_p[i]->value[1] = st * sin(ra);
+    cpoint_p[i]->value[2] = cos(dec);
   }
 
   if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
   {
     PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
-    return NULL;
+    goto fail;
   }
 
   tree->parent = NULL;
-  k3m_build_balanced_tree(tree, catalog, N_c, 0, &npool);
+  k3m_build_balanced_tree(tree, cpoint_p, N_c, 0, &npool);
 
-  if (!(search.value = malloc(3 * sizeof(real_t))))
+  if (!(spoint.value = malloc(3 * sizeof(real_t))))
   {
-    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of search point.");
-    return NULL;
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for Cartesian coordinates of spoint point.");
+    goto fail;
   }
 
   for (i=0; i<N_s; i++)
   {
-    search.id = i;
+    spoint.id = i;
 
     ra = RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0]));
     dec = RADIANS(*(real_t *)(dec_s->data + i*dec_s->strides[0]));
 
     st = sin(dec);
-    search.value[0] = st * cos(ra);
-    search.value[1] = st * sin(ra);
-    search.value[2] = cos(dec);
+    spoint.value[0] = st * cos(ra);
+    spoint.value[1] = st * sin(ra);
+    spoint.value[2] = cos(dec);
 
     match = NULL;
-    nmatch = k3m_in_range(tree, &match, &search, ds);
+    nmatch = k3m_in_range(tree, &match, &spoint, ds);
 
     if (nmatch)
     {
@@ -443,23 +413,23 @@ celestial(PyObject *self, PyObject *args)
       if (!(idx_s = realloc(idx_s, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
       if (!(idx_c = realloc(idx_c, nresults * sizeof(int_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
       if (!(dst = realloc(dst, nresults * sizeof(real_t))))
       {
         PyErr_SetString(PyExc_MemoryError, "could not allocate memory for results.");
-        return NULL;
+        goto fail;
       }
     }
 
     while (match)
     {
-      idx_s[j] = search.id;
+      idx_s[j] = spoint.id;
       idx_c[j] = match->id;
       j++;
       dst[k] = DEGREES(2 * asin(sqrt(match->ds) / 2));
@@ -469,30 +439,49 @@ celestial(PyObject *self, PyObject *args)
     j = nresults;
   }
 
-  free(search.value);
+  free(spoint.value);
   free(values);
-  free(catalog);
+  free(cpoint_p);
+  free(cpoint);
   free(tree);
 
-  shape[0] = nresults;
-
-  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_s);
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_s);
   PyArray_UpdateFlags(py_idx_s, NPY_OWNDATA);
 
-  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_ULONG, idx_c);
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_c);
   PyArray_UpdateFlags(py_idx_c, NPY_OWNDATA);
 
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, shape, NPY_DOUBLE, dst);
+  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_DOUBLE, dst);
   PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
+
+  Py_DECREF(ra_a);
+  Py_DECREF(dec_a);
+  Py_DECREF(ra_b);
+  Py_DECREF(dec_b);
 
   if (ra_a->dimensions[0] > ra_b->dimensions[0])
   {
-    return Py_BuildValue("OOO", PyArray_Return(py_idx_c), PyArray_Return(py_idx_s), PyArray_Return(py_dst));
+    return Py_BuildValue("NNN", py_idx_c, py_idx_s, py_dst);
   }
   else
   {
-    return Py_BuildValue("OOO", PyArray_Return(py_idx_s), PyArray_Return(py_idx_c), PyArray_Return(py_dst));
+    return Py_BuildValue("NNN", py_idx_s, py_idx_c, py_dst);
   }
+
+ fail:
+
+    if (spoint.value != NULL) free(spoint.value);
+    if (values != NULL) free(values);
+    if (cpoint_p != NULL) free(cpoint_p);
+    if (cpoint != NULL) free(cpoint);
+    if (tree != NULL) free(tree);
+
+    Py_XDECREF(ra_a);
+    Py_XDECREF(dec_a);
+    Py_XDECREF(ra_b);
+    Py_XDECREF(dec_b);
+
+    return NULL;
 }
 
 static PyMethodDef K3MatchMethods[] = {
