@@ -298,7 +298,7 @@ celestial(PyObject *self, PyObject *args)
   node_t *tree = NULL;
 
   int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_c = 0, N_s = 0, npool = 0;
-  real_t st = 0, ds = 0, ra = 0, dec = 0;
+  real_t st = 0, ds = 0, theta = 0, phi = 0;
 
   int_t *idx_s = NULL, *idx_c = NULL;
   real_t *dst = NULL, *values = NULL;
@@ -367,13 +367,13 @@ celestial(PyObject *self, PyObject *args)
     cpoint_p[i]->id = i;
     cpoint_p[i]->value = values + 3 * i;
 
-    ra = RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0]));
-    dec = RADIANS(*(real_t *)(dec_c->data + i*dec_c->strides[0]));
+    theta = RADIANS(90. + (*(real_t *)(dec_c->data + i*dec_c->strides[0])));
+    phi = RADIANS(*(real_t *)(ra_c->data + i*ra_c->strides[0]));
 
-    st = sin(dec);
-    cpoint_p[i]->value[0] = st * cos(ra);
-    cpoint_p[i]->value[1] = st * sin(ra);
-    cpoint_p[i]->value[2] = cos(dec);
+    st = sin(theta);
+    cpoint_p[i]->value[0] = st * cos(phi);
+    cpoint_p[i]->value[1] = st * sin(phi);
+    cpoint_p[i]->value[2] = cos(theta);
   }
 
   if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
@@ -395,13 +395,13 @@ celestial(PyObject *self, PyObject *args)
   {
     spoint.id = i;
 
-    ra = RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0]));
-    dec = RADIANS(*(real_t *)(dec_s->data + i*dec_s->strides[0]));
+    theta = RADIANS(90. + (*(real_t *)(dec_s->data + i*dec_s->strides[0])));
+    phi = RADIANS(*(real_t *)(ra_s->data + i*ra_s->strides[0]));
 
-    st = sin(dec);
-    spoint.value[0] = st * cos(ra);
-    spoint.value[1] = st * sin(ra);
-    spoint.value[2] = cos(dec);
+    st = sin(theta);
+    spoint.value[0] = st * cos(phi);
+    spoint.value[1] = st * sin(phi);
+    spoint.value[2] = cos(theta);
 
     match = NULL;
     nmatch = k3m_in_range(tree, &match, &spoint, ds);
