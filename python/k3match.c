@@ -454,14 +454,31 @@ celestial(PyObject *self, PyObject *args)
   free(cpoint);
   free(tree);
 
-  py_idx_s = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_s);
-  PyArray_UpdateFlags(py_idx_s, NPY_OWNDATA);
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNew(1, &nresults, NPY_ULONG);
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNew(1, &nresults, NPY_ULONG);
+  py_dst = (PyArrayObject *) PyArray_SimpleNew(1, &nresults, NPY_DOUBLE);
 
-  py_idx_c = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_ULONG, idx_c);
-  PyArray_UpdateFlags(py_idx_c, NPY_OWNDATA);
+  memcpy(py_idx_s->data, idx_s, nresults*sizeof(unsigned long));
+  memcpy(py_idx_c->data, idx_c, nresults*sizeof(unsigned long));
+  memcpy(py_dst->data, dst, nresults*sizeof(double));
 
-  py_dst = (PyArrayObject *) PyArray_SimpleNewFromData(1, &nresults, NPY_DOUBLE, dst);
-  PyArray_UpdateFlags(py_dst, NPY_OWNDATA);
+//  unsigned long *idx_s_p = (unsigned long *)(py_idx_s->data);
+//  unsigned long *idx_c_p = (unsigned long *)(py_idx_s->data);
+//  double* dst_p = (double *)(py_dst->data);
+//  for (i=0; i<nresults; i++)
+//  {
+//    *idx_s_p = idx_s[i];
+//    *idx_c_p = idx_c[i];
+//    *dst_p = dst[i];
+//
+//    idx_s_p++;
+//    idx_c_p++;
+//    dst_p++;
+//  }
+
+  free(idx_s);
+  free(idx_c);
+  free(dst);
 
   Py_DECREF(ra_a);
   Py_DECREF(dec_a);
