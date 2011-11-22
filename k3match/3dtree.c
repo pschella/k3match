@@ -21,7 +21,7 @@
 
 #include <k3match.h>
 
-void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_t level, int_t *npool)
+void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, char axis, int_t *npool)
 {
   node_t *current = tree+(*npool);
 
@@ -33,12 +33,12 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_
 
   if (npoints == 1)
   {
-    current->axis = level % 3;
+    current->axis = axis;
     current->point = *points;
   }
   else
   {
-    current->axis = level % 3;
+    current->axis = axis;
 
     current->point = k3m_median(points, npoints, current->axis);
 
@@ -48,7 +48,7 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_
       (*npool)++;
       current->left = tree+(*npool);
       current->left->parent = &(*current);
-      k3m_build_balanced_tree(tree, points, nleft, level+1, npool);
+      k3m_build_balanced_tree(tree, points, nleft, (axis+1)%3, npool);
     }
 
     nright = npoints / 2;
@@ -57,7 +57,7 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_
       (*npool)++;
       current->right = tree+(*npool);
       current->right->parent = &(*current);
-      k3m_build_balanced_tree(tree, points+nleft+1, nright, level+1, npool);
+      k3m_build_balanced_tree(tree, points+nleft+1, nright, (axis+1)%3, npool);
     }
   }
 }

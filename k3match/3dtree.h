@@ -24,14 +24,14 @@
 typedef struct node_t node_t;
 
 struct node_t {
-  int axis;
+  char axis;
 
   point_t* point;
 
   node_t *parent, *left, *right;
 };
 
-void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_t level, int_t *npool);
+void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, char axis, int_t *npool);
 
 void k3m_print_tree(node_t *tree);
 
