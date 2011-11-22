@@ -86,12 +86,8 @@ void k3m_print_dot_tree(node_t *tree)
     printf("%lu -> %lu;\n", (unsigned long)tree->point->id, (unsigned long)tree->right->point->id);
   }
 
-  real_t *l = tree->point->value;
-  printf("%lu [label=\"%lu\\n %f, ", (unsigned long)tree->point->id, (unsigned long)tree->point->id, *l);
-  l++;
-  printf("%f, ", *l);
-  l++;
-  printf("%f\"];\n", *l);
+  printf("%lu [label=\"%lu\\n %f %f %f\"];\n", (unsigned long)tree->point->id, (unsigned long)tree->point->id,
+      tree->point->value[0], tree->point->value[1], tree->point->value[2]);
 
   k3m_print_dot_tree(tree->left);
   k3m_print_dot_tree(tree->right);
@@ -106,7 +102,7 @@ node_t* k3m_closest_leaf(node_t *tree, point_t *point)
   {
     closest = current;
 
-    if (*(point->value+current->axis) > *((current->point->value)+current->axis))
+    if (point->value[current->axis] > current->point->value[current->axis])
     {
       current = current->right;
     }
