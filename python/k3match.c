@@ -15,10 +15,8 @@ static char doc[] =
 "===========================================================\n\n"
 "K3Match uses an implementation of three dimensional binary trees to efficiently"
 " find matches between points in 3D space.\n"
-"A given list of search points is compared to a list of catalog points and match indices and"
-" distances are given.\n"
-"K3Match can find either the closest match or all matches within a given search distance.\n"
-"Matches can be found either in 3D Cartesian space or on the surface of the 2D unit sphere in"
+"Two lists of points are compared and match indices as well as distances are given.\n"
+"K3Match can find all matches within a given search distance on the surface of the 2D unit sphere in"
 " standard spherical or celestial coordinates.\n";
 
 static char spherical_doc[] =
