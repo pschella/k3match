@@ -28,12 +28,13 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int_
   int_t nleft;
   int_t nright;
 
+  current->left = NULL;
+  current->right = NULL;
+
   if (npoints == 1)
   {
     current->axis = level % 3;
     current->point = *points;
-    current->left = NULL;
-    current->right = NULL;
   }
   else
   {
