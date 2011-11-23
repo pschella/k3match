@@ -21,7 +21,7 @@
 
 #include <k3match.h>
 
-void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, char axis, int_t *npool)
+void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int axis, int_t *npool)
 {
   node_t *current = tree+(*npool);
 
