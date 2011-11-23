@@ -4,7 +4,7 @@ from distutils.core import setup, Extension
 import numpy as np
 
 setup(name='k3match',
-      version='1.0.0',
+      version='1.0',
       description='K3Match',
       author='Pim Schellart',
       author_email='P.Schellart@astro.ru.nl',
