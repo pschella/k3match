@@ -66,9 +66,8 @@ void k3m_print_tree(node_t *tree)
 {
   if (!tree) return;
 
-  printf("%lu %f %f %f\n", (unsigned long)tree->point->id, tree->point->value[0], tree->point->value[1], tree->point->value[2]);
-
   k3m_print_tree(tree->left);
+  printf("%lu %f %f %f\n", (unsigned long)tree->point->id, tree->point->value[0], tree->point->value[1], tree->point->value[2]);
   k3m_print_tree(tree->right);
 }
 
