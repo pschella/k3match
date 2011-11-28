@@ -11,6 +11,7 @@ setup(name='k3match',
       url='',
       ext_modules=[Extension('k3match',
                    sources=['k3match/3dtree.c', 'k3match/brute.c',  'k3match/median.c', 'k3match/point.c', 'python/k3match.c'],
-                   include_dirs=['.', 'k3match', np.get_include()])]
+                   include_dirs=['.', 'k3match', np.get_include()],
+                   libraries=['m'])]
      )
 
