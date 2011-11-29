@@ -1,0 +1,197 @@
+body
+{
+    margin: 0;
+    padding: 0;
+    font: 76% tahoma, verdana, sans-serif;
+    background: #e0e0e0;
+    color: #303030;
+}
+
+h1, h2, h3
+{
+    font-weight: normal;
+    clear: both;
+}
+
+/* Container */
+#container
+{
+    margin: 25px auto 25px auto;
+    padding: 5px 20px 20px 20px;
+    width: 760px;
+    background: #ffffff;
+}
+
+/* Links */
+a
+{
+    text-decoration: none;
+    color: #505050;
+}
+
+a:hover
+{
+    text-decoration: underline;
+    color: #286ea0;
+}
+
+/* Code */
+code
+{
+    display: block;
+    margin: 5px;
+    font-family: Monaco, Consolas, "Lucida Console", monospace;
+    font-size: 11px;
+    line-height: 18px;
+    color: #155;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Navigation */
+nav
+{
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+nav ul
+{
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+nav li
+{
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+
+nav a
+{
+    margin: 0 0 4px 0;
+    padding: 4px 8px 4px 8px;
+    background: #e0e0e0;
+    border-bottom: 0px solid #ffffff;
+    border-left: 1px solid #ffffff;
+    border-top-right-radius: 10px;
+    letter-spacing: 1px;
+    text-decoration: none;
+}
+
+nav a:hover
+{
+    background: #d0d0d0;
+    text-decoration: none;
+}
+
+nav a#active
+{
+    background: #505050;
+    color: #ffffff;
+}
+
+nav a#active:hover
+{
+    background: #ffffff;
+    color: #286ea0;
+}
+
+/* Banner */
+#banner
+{
+    margin: 0px;
+    margin-left: 1px;
+    margin-top: 5px;
+    margin-bottom: 0px;
+    height: 200px;
+    padding: 1px 0px 0px 15px;
+    background: url('images/banner.jpg') top left no-repeat;
+    color: #ffffff;
+}
+
+/* Footer */
+footer
+{
+    display: block;
+    background: #fafafa;
+    color: #808080;
+    border-top: 1px solid #d0d0d0;
+    border-bottom: 1px solid #d0d0d0;
+    text-align: center;
+    clear: both;
+}
+
+/* Text blocks */
+.block
+{
+    background: #f0f0f0;
+    padding: 15px;
+}
+
+/* Tables */
+table
+{
+    margin: 0 0 16px 0;
+    padding: 0;
+    line-height: 1.3em;
+    border-collapse: collapse;
+    border: 1px solid #d8d8d8;
+}
+
+caption
+{
+    margin: 0;
+    padding: 6px 0 8px 0;
+    text-align: left;
+    font-size: 1.5em;
+    font-weight: normal;
+}
+
+tr:nth-child(2n+1)
+{
+    background: #f4f4f4;
+}
+
+th
+{
+    padding: 7px;
+    text-align: left;
+    background: #eaeaea;
+    color: #505050;
+}
+
+td
+{
+    padding: 7px;
+    font-size: 0.9em;
+    text-align: left;
+    color: #303030;
+}
+
+/* Figure container */
+figure
+{
+    margin: 0;
+}
+
+figcaption
+{
+    margin: 0;
+}
+
+.float_left
+{
+    margin: auto 15px auto 15px;
+    float:left;
+}
+
+.float_right
+{
+    margin: auto 15px auto 15px;
+    float:right;
+}
+
