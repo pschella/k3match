@@ -1,1 +1,3 @@
 K3Match is a C library with Python bindings for fast matching of points in 3D space.
+
+To find out more, visit the K3Match website at: http://pschella.github.com/k3match
