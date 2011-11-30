@@ -26,7 +26,7 @@ h1, h2, h3
 a
 {
     text-decoration: none;
-    color: #505050;
+    color: #286ea0;
 }
 
 a:hover
@@ -47,6 +47,11 @@ code
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+code a
+{
+    color: #155;
+}    
 
 /* Navigation */
 nav
