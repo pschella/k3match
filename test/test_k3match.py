@@ -5,6 +5,8 @@ na = 1e6
 nb = 1e6
 ds = 1./60.
 
+np.random.seed(325423)
+
 print "ds =", ds
 
 ra_a = np.random.rand(na) * 360

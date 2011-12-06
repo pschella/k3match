@@ -25,40 +25,33 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int 
 {
   node_t *current = tree+(*npool);
 
-  int_t nleft;
-  int_t nright;
+  int next_axis = (axis + 1) % 3;
+
+  int_t nleft, nright;
 
   current->left = NULL;
   current->right = NULL;
+  current->axis = axis;
 
-  if (npoints == 1)
+  current->point = k3m_median(points, npoints, current->axis);
+
+  nright = npoints / 2;
+  nleft = nright - (1 - npoints % 2);
+
+  if (nleft > 0)
   {
-    current->axis = axis;
-    current->point = *points;
+    (*npool)++;
+    current->left = tree+(*npool);
+    current->left->parent = &(*current);
+    k3m_build_balanced_tree3(tree, points, nleft, next_axis, npool);
   }
-  else
+
+  if (nright > 0)
   {
-    current->axis = axis;
-
-    current->point = k3m_median(points, npoints, current->axis);
-
-    nleft = npoints / 2 - (1 - npoints % 2);
-    if (nleft > 0)
-    {
-      (*npool)++;
-      current->left = tree+(*npool);
-      current->left->parent = &(*current);
-      k3m_build_balanced_tree(tree, points, nleft, (axis+1)%3, npool);
-    }
-
-    nright = npoints / 2;
-    if (nright > 0)
-    {
-      (*npool)++;
-      current->right = tree+(*npool);
-      current->right->parent = &(*current);
-      k3m_build_balanced_tree(tree, points+nleft+1, nright, (axis+1)%3, npool);
-    }
+    (*npool)++;
+    current->right = tree+(*npool);
+    current->right->parent = &(*current);
+    k3m_build_balanced_tree3(tree, points+nleft+1, nright, next_axis, npool);
   }
 }
 
