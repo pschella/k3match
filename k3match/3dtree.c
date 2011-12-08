@@ -21,6 +21,8 @@
 
 #include <k3match.h>
 
+#define SQUARE(x) ((x) * (x))
+
 void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int axis, int_t *npool)
 {
   node_t *current = tree+(*npool);
@@ -43,7 +45,7 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int 
     (*npool)++;
     current->left = tree+(*npool);
     current->left->parent = &(*current);
-    k3m_build_balanced_tree3(tree, points, nleft, next_axis, npool);
+    k3m_build_balanced_tree(tree, points, nleft, next_axis, npool);
   }
 
   if (nright > 0)
@@ -51,7 +53,7 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int 
     (*npool)++;
     current->right = tree+(*npool);
     current->right->parent = &(*current);
-    k3m_build_balanced_tree3(tree, points+nleft+1, nright, next_axis, npool);
+    k3m_build_balanced_tree(tree, points+nleft+1, nright, next_axis, npool);
   }
 }
 
@@ -176,26 +178,22 @@ node_t* k3m_nearest_neighbour(node_t *tree, point_t *point)
 
 int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
 {
-  int i;
-  real_t d[3];
+  node_t* current = tree;
+  real_t d[3] = {0, 0, 0};
   int_t nmatch = 0;
   real_t dc = 0;
-  node_t* current = NULL;
-  node_t* last = NULL;
+  int i = 0;
 
-  if (!tree) return nmatch;
-
-  current = k3m_closest_leaf(tree, search);
-
-  do
+  while (current)
   {
+    /* calculate distance from current point to search point */
     for (i=0; i<3; i++)
     {
-      d[i] = current->point->value[i] - search->value[i];
-      d[i] = d[i] * d[i];
+      d[i] = SQUARE(current->point->value[i] - search->value[i]);
     }
-
     dc = d[0] + d[1] + d[2];
+
+    /* check if current point is within search radius */
     if (dc < ds)
     {
       current->point->ds = dc;
@@ -204,21 +202,28 @@ int_t k3m_in_range(node_t *tree, point_t **match, point_t *search, real_t ds)
       nmatch++;
     }
 
-    if (d[current->axis] < ds)
+    /* next point is on the same side of the partition plane as the search point */
+    if (search->value[current->axis] > current->point->value[current->axis])
     {
-      if (last == current->left)
-      {
-        nmatch += k3m_in_range(current->right, match, search, ds);
-      }
-      else
+      /* check if we need to examine the points on the opposite side */
+      if (d[current->axis] < ds)
       {
         nmatch += k3m_in_range(current->left, match, search, ds);
       }
-    }
 
-    last = current;
-    current = current->parent;
-  } while (last != tree);
+      current = current->right;
+    }
+    else
+    {
+      /* check if we need to examine the points on the opposite side */
+      if (d[current->axis] < ds)
+      {
+        nmatch += k3m_in_range(current->right, match, search, ds);
+      }
+
+      current = current->left;
+    }
+  }
 
   return nmatch;
 }
