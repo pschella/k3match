@@ -25,7 +25,7 @@ option (K3MATCH_BUILD_TESTS "Build k3match test programs." OFF)
 include_directories (BEFORE ${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR})
 
 ## Install header files
-install (FILES ${PROJECT_SOURCE_DIR}/k3match.h ${PROJECT_BINARY_DIR}/k3match_config.h
+install (FILES ${PROJECT_SOURCE_DIR}/k3match.h
   DESTINATION include
   )
 
