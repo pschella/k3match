@@ -722,10 +722,201 @@ celestial(PyObject *self, PyObject *args)
     return NULL;
 }
 
+static char nearest_cartesian_doc[] =
+"(idx_a, idx_b, d) = k3match.nearest_cartesian(x_a, y_a, z_a, x_b, y_b, z_b)\n\n"
+"Find nearest neighbour in cartesian coordinates between two sets of points (x_a, y_a, z_a) and (x_b, y_b, z_b)\n\n"
+"Ordering of the arrays is not important since binary tree will be built automatically for longest array.\n\n";
+
+static PyObject *
+nearest_cartesian(PyObject *self, PyObject *args)
+{
+  PyObject *in_x_a = NULL, *in_y_a = NULL, *in_z_a = NULL;
+  PyObject *in_x_b = NULL, *in_y_b = NULL, *in_z_b = NULL;
+  PyArrayObject *x_a = NULL, *y_a = NULL, *z_a = NULL;
+  PyArrayObject *x_b = NULL, *y_b = NULL, *z_b = NULL;
+  PyArrayObject *x_c = NULL, *y_c = NULL, *z_c = NULL;
+  PyArrayObject *x_s = NULL, *y_s = NULL, *z_s = NULL;
+  PyArrayObject *py_idx_s = NULL, *py_idx_c = NULL, *py_dst = NULL;
+
+  point_t *cpoint = NULL;
+  point_t **cpoint_p = NULL;
+  node_t *match = NULL;
+  point_t spoint; spoint.value = NULL;
+  node_t *tree = NULL;
+
+  int_t *idx_s_p, *idx_c_p;
+  real_t *dst_p;
+  int_t i = 0, j = 0, k = 0, nresults = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
+  real_t st = 0;
+
+  double *x_p = NULL, *y_p = NULL, *z_p = NULL;
+
+  int_t *idx_s = NULL, *idx_c = NULL;
+  real_t *values = NULL;
+
+  if (!PyArg_ParseTuple(args, "OOOOOO", &in_x_a, &in_y_a, &in_z_a, &in_x_b, &in_y_b, &in_z_b)) return NULL;
+
+  x_a = (PyArrayObject*) PyArray_FROM_OTF(in_x_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  y_a = (PyArrayObject*) PyArray_FROM_OTF(in_y_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  z_a = (PyArrayObject*) PyArray_FROM_OTF(in_z_a, NPY_DOUBLE, NPY_IN_ARRAY);
+  x_b = (PyArrayObject*) PyArray_FROM_OTF(in_x_b, NPY_DOUBLE, NPY_IN_ARRAY);
+  y_b = (PyArrayObject*) PyArray_FROM_OTF(in_y_b, NPY_DOUBLE, NPY_IN_ARRAY);
+  z_b = (PyArrayObject*) PyArray_FROM_OTF(in_z_b, NPY_DOUBLE, NPY_IN_ARRAY);
+
+  if (!x_a || !y_a || !z_a || !x_b || !y_b || !z_b)
+  {
+    PyErr_SetString(PyExc_ValueError, "could not convert input to ndarray");
+    goto fail;
+  }
+
+  if (!(ISVECTOR(x_a)) || !(ISVECTOR(y_a)) || !(ISVECTOR(z_a)) || !(ISVECTOR(x_b)) || !(ISVECTOR(y_b)) || !(ISVECTOR(z_b)))
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct shape");
+  }
+
+  if (SIZE(x_a) != SIZE(y_a) || SIZE(x_b) != SIZE(y_b))
+  {
+    PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct size");
+    goto fail;
+  }
+
+  N_a = SIZE(x_a);
+  N_b = SIZE(x_b);
+
+  if (N_a > N_b)
+  {
+    N_c = N_a;
+    N_s = N_b;
+    x_c = x_a;
+    y_c = y_a;
+    z_c = z_a;
+    x_s = x_b;
+    y_s = y_b;
+    z_s = z_b;
+  }
+  else
+  {
+    N_c = N_b;
+    N_s = N_a;
+    x_c = x_b;
+    y_c = y_b;
+    z_c = z_b;
+    x_s = x_a;
+    y_s = y_a;
+    z_s = z_a;
+  }
+
+  if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
+    goto fail;
+  }
+
+  if (!(cpoint_p = malloc(N_c * sizeof(point_t*))) || !(cpoint = malloc(N_c * sizeof(point_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for catalog points.");
+    goto fail;
+  }
+
+  x_p = (double *)(x_c->data);
+  y_p = (double *)(y_c->data);
+  z_p = (double *)(z_c->data);
+  for (i=0; i<N_c; i++)
+  {
+    cpoint_p[i] = cpoint + i;
+    cpoint_p[i]->id = i;
+    cpoint_p[i]->value = values + 3 * i;
+
+    cpoint_p[i]->value[0] = *x_p++;
+    cpoint_p[i]->value[1] = *y_p++;
+    cpoint_p[i]->value[2] = *z_p++;
+  }
+
+  if (!(tree = (node_t*) malloc(N_c * sizeof(node_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for tree.");
+    goto fail;
+  }
+
+  tree->parent = NULL;
+  k3m_build_balanced_tree(tree, cpoint_p, N_c, 0, &npool);
+
+  if (!(spoint.value = malloc(3 * sizeof(real_t))))
+  {
+    PyErr_SetString(PyExc_MemoryError, "could not allocate memory for search point.");
+    goto fail;
+  }
+
+  py_idx_s = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_ULONG);
+  py_idx_c = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_ULONG);
+  py_dst = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_DOUBLE);
+
+  idx_s_p = (int_t *)(py_idx_s->data);
+  idx_c_p = (int_t *)(py_idx_c->data);
+  dst_p = (real_t *)(py_dst->data);
+  x_p = (double *)(x_s->data);
+  y_p = (double *)(y_s->data);
+  z_p = (double *)(z_s->data);
+  for (i=0; i<N_s; i++)
+  {
+    spoint.id = i;
+
+    spoint.value[0] = *x_p++;
+    spoint.value[1] = *y_p++;
+    spoint.value[2] = *z_p++;
+
+    match = k3m_nearest_neighbour(tree, &spoint);
+
+    *idx_s_p++ = spoint.id;
+    *idx_c_p++ = match->point->id;
+    *dst_p++ = sqrt(k3m_distance_squared(&spoint, match->point));
+  }
+
+  free(spoint.value);
+  free(values);
+  free(cpoint_p);
+  free(cpoint);
+  free(tree);
+
+  Py_DECREF(x_a);
+  Py_DECREF(y_a);
+  Py_DECREF(z_a);
+  Py_DECREF(x_b);
+  Py_DECREF(y_b);
+  Py_DECREF(z_b);
+
+  if (N_a > N_b)
+  {
+    return Py_BuildValue("NNN", py_idx_c, py_idx_s, py_dst);
+  }
+  else
+  {
+    return Py_BuildValue("NNN", py_idx_s, py_idx_c, py_dst);
+  }
+
+ fail:
+
+    if (spoint.value != NULL) free(spoint.value);
+    if (values != NULL) free(values);
+    if (cpoint_p != NULL) free(cpoint_p);
+    if (cpoint != NULL) free(cpoint);
+    if (tree != NULL) free(tree);
+
+    Py_XDECREF(x_a);
+    Py_XDECREF(y_a);
+    Py_XDECREF(z_a);
+    Py_XDECREF(x_b);
+    Py_XDECREF(y_b);
+    Py_XDECREF(z_b);
+
+    return NULL;
+}
+
 static PyMethodDef K3MatchMethods[] = {
   {"cartesian", cartesian, METH_VARARGS, cartesian_doc},
   {"spherical", spherical, METH_VARARGS, spherical_doc},
   {"celestial", celestial, METH_VARARGS, celestial_doc},
+  {"nearest_cartesian", nearest_cartesian, METH_VARARGS, nearest_cartesian_doc},
   {NULL, NULL, 0, NULL}
 };
 
