@@ -723,7 +723,7 @@ celestial(PyObject *self, PyObject *args)
 }
 
 static char nearest_cartesian_doc[] =
-"(idx_a, idx_b, d) = k3match.nearest_cartesian(x_a, y_a, z_a, x_b, y_b, z_b)\n\n"
+"(idx, d) = k3match.nearest_cartesian(x_a, y_a, z_a, x_b, y_b, z_b)\n\n"
 "Find nearest neighbour in cartesian coordinates between two sets of points (x_a, y_a, z_a) and (x_b, y_b, z_b)\n\n"
 "Ordering of the arrays is not important since binary tree will be built automatically for longest array.\n\n";
 
@@ -736,7 +736,7 @@ nearest_cartesian(PyObject *self, PyObject *args)
   PyArrayObject *x_b = NULL, *y_b = NULL, *z_b = NULL;
   PyArrayObject *x_c = NULL, *y_c = NULL, *z_c = NULL;
   PyArrayObject *x_s = NULL, *y_s = NULL, *z_s = NULL;
-  PyArrayObject *py_idx_s = NULL, *py_idx_c = NULL, *py_dst = NULL;
+  PyArrayObject *py_idx = NULL, *py_dst = NULL;
 
   point_t *cpoint = NULL;
   point_t **cpoint_p = NULL;
@@ -744,14 +744,14 @@ nearest_cartesian(PyObject *self, PyObject *args)
   point_t spoint; spoint.value = NULL;
   node_t *tree = NULL;
 
-  int_t *idx_s_p, *idx_c_p;
+  int_t *idx_p;
   real_t *dst_p;
   int_t i = 0, j = 0, k = 0, nresults = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
   real_t st = 0;
 
   double *x_p = NULL, *y_p = NULL, *z_p = NULL;
 
-  int_t *idx_s = NULL, *idx_c = NULL;
+  int_t *idx = NULL;
   real_t *values = NULL;
 
   if (!PyArg_ParseTuple(args, "OOOOOO", &in_x_a, &in_y_a, &in_z_a, &in_x_b, &in_y_b, &in_z_b)) return NULL;
@@ -847,12 +847,10 @@ nearest_cartesian(PyObject *self, PyObject *args)
     goto fail;
   }
 
-  py_idx_s = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_ULONG);
-  py_idx_c = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_ULONG);
+  py_idx = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_ULONG);
   py_dst = (PyArrayObject *) PyArray_SimpleNew(1, &N_s, NPY_DOUBLE);
 
-  idx_s_p = (int_t *)(py_idx_s->data);
-  idx_c_p = (int_t *)(py_idx_c->data);
+  idx_p = (int_t *)(py_idx->data);
   dst_p = (real_t *)(py_dst->data);
   x_p = (double *)(x_s->data);
   y_p = (double *)(y_s->data);
@@ -867,8 +865,7 @@ nearest_cartesian(PyObject *self, PyObject *args)
 
     match = k3m_nearest_neighbour(tree, &spoint);
 
-    *idx_s_p++ = spoint.id;
-    *idx_c_p++ = match->point->id;
+    *idx_p++ = match->point->id;
     *dst_p++ = sqrt(k3m_distance_squared(&spoint, match->point));
   }
 
@@ -885,14 +882,7 @@ nearest_cartesian(PyObject *self, PyObject *args)
   Py_DECREF(y_b);
   Py_DECREF(z_b);
 
-  if (N_a > N_b)
-  {
-    return Py_BuildValue("NNN", py_idx_c, py_idx_s, py_dst);
-  }
-  else
-  {
-    return Py_BuildValue("NNN", py_idx_s, py_idx_c, py_dst);
-  }
+  return Py_BuildValue("NN", py_idx, py_dst);
 
  fail:
 
