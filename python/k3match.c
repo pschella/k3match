@@ -723,17 +723,15 @@ celestial(PyObject *self, PyObject *args)
 }
 
 static char nearest_cartesian_doc[] =
-"(idx, d) = k3match.nearest_cartesian(x_a, y_a, z_a, x_b, y_b, z_b)\n\n"
-"Find nearest neighbour in cartesian coordinates between two sets of points (x_a, y_a, z_a) and (x_b, y_b, z_b)\n\n"
-"Ordering of the arrays is not important since binary tree will be built automatically for longest array.\n\n";
+"(idx, d) = k3match.nearest_cartesian(x_c, y_c, z_c, x_s, y_s, z_s)\n\n"
+"Find nearest neighbour in cartesian coordinates between two sets of points (x_c, y_c, z_c) and (x_s, y_s, z_s)\n\n"
+"Array *c* is used for building the catalog and *idx* refers to this array.\n\n";
 
 static PyObject *
 nearest_cartesian(PyObject *self, PyObject *args)
 {
-  PyObject *in_x_a = NULL, *in_y_a = NULL, *in_z_a = NULL;
-  PyObject *in_x_b = NULL, *in_y_b = NULL, *in_z_b = NULL;
-  PyArrayObject *x_a = NULL, *y_a = NULL, *z_a = NULL;
-  PyArrayObject *x_b = NULL, *y_b = NULL, *z_b = NULL;
+  PyObject *in_x_c = NULL, *in_y_c = NULL, *in_z_c = NULL;
+  PyObject *in_x_s = NULL, *in_y_s = NULL, *in_z_s = NULL;
   PyArrayObject *x_c = NULL, *y_c = NULL, *z_c = NULL;
   PyArrayObject *x_s = NULL, *y_s = NULL, *z_s = NULL;
   PyArrayObject *py_idx = NULL, *py_dst = NULL;
@@ -746,7 +744,7 @@ nearest_cartesian(PyObject *self, PyObject *args)
 
   int_t *idx_p;
   real_t *dst_p;
-  int_t i = 0, j = 0, k = 0, nresults = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
+  int_t i = 0, j = 0, k = 0, nresults = 0, N_c = 0, N_s = 0, npool = 0;
   real_t st = 0;
 
   double *x_p = NULL, *y_p = NULL, *z_p = NULL;
@@ -754,57 +752,34 @@ nearest_cartesian(PyObject *self, PyObject *args)
   int_t *idx = NULL;
   real_t *values = NULL;
 
-  if (!PyArg_ParseTuple(args, "OOOOOO", &in_x_a, &in_y_a, &in_z_a, &in_x_b, &in_y_b, &in_z_b)) return NULL;
+  if (!PyArg_ParseTuple(args, "OOOOOO", &in_x_c, &in_y_c, &in_z_c, &in_x_s, &in_y_s, &in_z_s)) return NULL;
 
-  x_a = (PyArrayObject*) PyArray_FROM_OTF(in_x_a, NPY_DOUBLE, NPY_IN_ARRAY);
-  y_a = (PyArrayObject*) PyArray_FROM_OTF(in_y_a, NPY_DOUBLE, NPY_IN_ARRAY);
-  z_a = (PyArrayObject*) PyArray_FROM_OTF(in_z_a, NPY_DOUBLE, NPY_IN_ARRAY);
-  x_b = (PyArrayObject*) PyArray_FROM_OTF(in_x_b, NPY_DOUBLE, NPY_IN_ARRAY);
-  y_b = (PyArrayObject*) PyArray_FROM_OTF(in_y_b, NPY_DOUBLE, NPY_IN_ARRAY);
-  z_b = (PyArrayObject*) PyArray_FROM_OTF(in_z_b, NPY_DOUBLE, NPY_IN_ARRAY);
+  x_c = (PyArrayObject*) PyArray_FROM_OTF(in_x_c, NPY_DOUBLE, NPY_IN_ARRAY);
+  y_c = (PyArrayObject*) PyArray_FROM_OTF(in_y_c, NPY_DOUBLE, NPY_IN_ARRAY);
+  z_c = (PyArrayObject*) PyArray_FROM_OTF(in_z_c, NPY_DOUBLE, NPY_IN_ARRAY);
+  x_s = (PyArrayObject*) PyArray_FROM_OTF(in_x_s, NPY_DOUBLE, NPY_IN_ARRAY);
+  y_s = (PyArrayObject*) PyArray_FROM_OTF(in_y_s, NPY_DOUBLE, NPY_IN_ARRAY);
+  z_s = (PyArrayObject*) PyArray_FROM_OTF(in_z_s, NPY_DOUBLE, NPY_IN_ARRAY);
 
-  if (!x_a || !y_a || !z_a || !x_b || !y_b || !z_b)
+  if (!x_c || !y_c || !z_c || !x_s || !y_s || !z_s)
   {
     PyErr_SetString(PyExc_ValueError, "could not convert input to ndarray");
     goto fail;
   }
 
-  if (!(ISVECTOR(x_a)) || !(ISVECTOR(y_a)) || !(ISVECTOR(z_a)) || !(ISVECTOR(x_b)) || !(ISVECTOR(y_b)) || !(ISVECTOR(z_b)))
+  if (!(ISVECTOR(x_c)) || !(ISVECTOR(y_c)) || !(ISVECTOR(z_c)) || !(ISVECTOR(x_s)) || !(ISVECTOR(y_s)) || !(ISVECTOR(z_s)))
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct shape");
   }
 
-  if (SIZE(x_a) != SIZE(y_a) || SIZE(x_b) != SIZE(y_b))
+  if (SIZE(x_c) != SIZE(y_c) || SIZE(y_c) != SIZE(z_c) || SIZE(x_s) != SIZE(y_s) || SIZE(y_s) != SIZE(z_s))
   {
     PyErr_SetString(PyExc_ValueError, "input arrays are not of the correct size");
     goto fail;
   }
 
-  N_a = SIZE(x_a);
-  N_b = SIZE(x_b);
-
-  if (N_a > N_b)
-  {
-    N_c = N_a;
-    N_s = N_b;
-    x_c = x_a;
-    y_c = y_a;
-    z_c = z_a;
-    x_s = x_b;
-    y_s = y_b;
-    z_s = z_b;
-  }
-  else
-  {
-    N_c = N_b;
-    N_s = N_a;
-    x_c = x_b;
-    y_c = y_b;
-    z_c = z_b;
-    x_s = x_a;
-    y_s = y_a;
-    z_s = z_a;
-  }
+  N_c = SIZE(x_c);
+  N_s = SIZE(x_s);
 
   if (!(values = (real_t*) malloc(3 * N_c * sizeof(real_t))))
   {
@@ -875,12 +850,12 @@ nearest_cartesian(PyObject *self, PyObject *args)
   free(cpoint);
   free(tree);
 
-  Py_DECREF(x_a);
-  Py_DECREF(y_a);
-  Py_DECREF(z_a);
-  Py_DECREF(x_b);
-  Py_DECREF(y_b);
-  Py_DECREF(z_b);
+  Py_DECREF(x_c);
+  Py_DECREF(y_c);
+  Py_DECREF(z_c);
+  Py_DECREF(x_s);
+  Py_DECREF(y_s);
+  Py_DECREF(z_s);
 
   return Py_BuildValue("NN", py_idx, py_dst);
 
@@ -892,12 +867,12 @@ nearest_cartesian(PyObject *self, PyObject *args)
     if (cpoint != NULL) free(cpoint);
     if (tree != NULL) free(tree);
 
-    Py_XDECREF(x_a);
-    Py_XDECREF(y_a);
-    Py_XDECREF(z_a);
-    Py_XDECREF(x_b);
-    Py_XDECREF(y_b);
-    Py_XDECREF(z_b);
+    Py_XDECREF(x_c);
+    Py_XDECREF(y_c);
+    Py_XDECREF(z_c);
+    Py_XDECREF(x_s);
+    Py_XDECREF(y_s);
+    Py_XDECREF(z_s);
 
     return NULL;
 }
