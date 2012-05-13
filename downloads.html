@@ -33,27 +33,20 @@
     
     <div id="main">
         <h2>Binaries</h2>
-        For deb based systems the following packages are available.
+        <h3>Ubuntu</h3>
         <p>
-        Click on your architecture to download the correct package.
-        <table>
-        <tr>
-            <th>Distribution</th>
-            <th>Version</th>
-            <th>Architecture</th>
-        </tr>
-        <tr>
-            <td>Ubuntu</td>
-            <td>10.04</td>
-            <td><a href="http://www.astro.ru.nl/~pschella/files/software/k3match/ubuntu/10.04/python-k3match_1.0-1_i386.deb">i386</a> / <a href="http://www.astro.ru.nl/~pschella/files/software/k3match/ubuntu/10.04/python-k3match_1.0-1_amd64.deb">x86_64</a></td>
-        </tr>
-        <tr>
-            <td>Debian</td>
-            <td>6.0</td>
-            <td><a href="http://www.astro.ru.nl/~pschella/files/software/k3match/debian/6.0/python-k3match_1.0-1_i386.deb">i386</a> / <a href="http://www.astro.ru.nl/~pschella/files/software/k3match/debian/6.0/python-k3match_1.0-1_amd64.deb">x86_64</a></td>
-        </tr>
-        </table>
+        For Ubuntu users a PPA repository is available.
+        By adding <a href="https://launchpad.net/~pschella/+archive/k3match">ppa:pschella/k3match</a> to your system's Software Sources you will be able to install and update k3match using your package manager.
         </p>
+        <p>
+        To add the PPA to your software sources open a terminal and enter:
+        <pre>sudo add-apt-repository ppa:pschella/k3match</pre>
+        Now update your software list
+        <pre>sudo apt-get update</pre>
+        and install k3match.
+        <pre>sudo apt-get install k3match-python</pre>
+        </p>
+        <h3>RPM based distributions</h3>
         For several rpm based distributions repositories are available with the latest binaries for the i386 and x86_64 architectures.<br>
         <p>
         Click on your distribution version to go to the correct download repository.
@@ -64,23 +57,23 @@
         </tr>
         <tr>
             <td>OpenSUSE</td>
-            <td><a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/openSUSE_11.3/">11.3</a> / <a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/openSUSE_11.4/">11.4</a> / <a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/openSUSE_12.1/">12.1</a></td>
+            <td><a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=openSUSE_11.4">11.4</a> / <a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=openSUSE_12.1">12.1</a></td>
         </tr>
         <tr>
             <td>Red Hat Enterprise Linux</td>
-            <td><a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/RedHat_RHEL-6/">6</a></td>
+            <td><a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=RedHat_RHEL-6">6</a></td>
         </tr>
         <tr>
             <td>CentOS</td>
-            <td><a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/CentOS_CentOS-6/">6</a></td>
+            <td><a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=CentOS_CentOS-6">6</a></td>
         </tr>
         <tr>
             <td>Fedora</td>
-            <td><a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/Fedora_15/">15</a> / <a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/Fedora_16/">16</a></td>
+            <td><a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=Fedora_15">15</a> / <a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=Fedora_16">16</a></td>
         </tr>
         <tr>
             <td>Mandriva</td>
-            <td><a href="http://download.opensuse.org/repositories/home:/pschella:/k3match/Mandriva_2011/">2011</a></td>
+            <td><a href="https://build.opensuse.org/package/binaries?package=python-k3match&project=home%3Apschella%3Ak3match&repository=Mandriva_2011">2011</a></td>
         </tr>
         </table>
         </p>
