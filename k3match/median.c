@@ -24,56 +24,44 @@
 
 point_t* k3m_median(point_t **array, const unsigned long n, const unsigned int axis)
 {
-  point_t *temp = NULL;
-  unsigned long low, high ;
-  unsigned long median;
-  unsigned long middle, ll, hh;
+  const unsigned long k = n / 2;
+  unsigned long i, ir, j, l, mid;
+  point_t *a, *temp;
 
-  low = 0 ; high = n-1 ; median = (low + high) / 2;
-  for (;;)
-  {
-    if (high <= low)
-    {
-      /* One element only */
-      return array[median];
+  l=1;
+  ir=n-1;
+  for (;;) {
+    if (ir <= l+1) {
+      if (ir == l+1 && array[ir]->value[axis] < array[l]->value[axis]) {
+        SWAP(array[l],array[ir])
+      }
+      return array[k];
+    } else {
+      mid=(l+ir) >> 1;
+      SWAP(array[mid],array[l+1])
+      if (array[l]->value[axis] > array[ir]->value[axis]) {
+        SWAP(array[l],array[ir])
+      }
+      if (array[l+1]->value[axis] > array[ir]->value[axis]) {
+        SWAP(array[l+1],array[ir])
+      }
+      if (array[l]->value[axis] > array[l+1]->value[axis]) {
+        SWAP(array[l],array[l+1])
+      }
+      i=l+1;
+      j=ir;
+      a=array[l+1];
+      for (;;) {
+        do i++; while (array[i]->value[axis] < a->value[axis]);
+        do j--; while (array[j]->value[axis] > a->value[axis]);
+        if (j < i) break;
+        SWAP(array[i],array[j])
+      }
+      array[l+1]=array[j];
+      array[j]=a;
+      if (j >= k) ir=j-1;
+      if (j <= k) l=i;
     }
-
-    if (high == low + 1)
-    {
-      /* Two elements only */
-      if (array[low]->value[axis] > array[high]->value[axis])
-        SWAP(array[low], array[high]);
-      return array[median];
-    }
-
-    /* Find median of low, middle and high items; swap into position low */
-    middle = (low + high) / 2;
-    if (array[middle]->value[axis] > array[high]->value[axis]) SWAP(array[middle], array[high]);
-    if (array[low]->value[axis] > array[high]->value[axis]) SWAP(array[low], array[high]);
-    if (array[middle]->value[axis] > array[low]->value[axis]) SWAP(array[middle], array[low]);
-
-    /* Swap low item (now in position middle) into position (low+1) */
-    SWAP(array[middle], array[low+1]);
-
-    /* Nibble from each end towards middle, swapping items when stuck */
-    ll = low + 1;
-    hh = high;
-    for (;;)
-    {
-      do ll++; while (array[low]->value[axis] > array[ll]->value[axis]);
-      do hh--; while (array[hh]->value[axis]  > array[low]->value[axis]);
-
-      if (hh < ll) break;
-
-      SWAP(array[ll], array[hh]);
-    }
-
-    /* Swap middle item (in position low) back into correct position */
-    SWAP(array[low], array[hh]);
-
-    /* Re-set active partition */
-    if (hh <= median) low = ll;
-    if (hh >= median) high = hh - 1;
   }
 }
 
