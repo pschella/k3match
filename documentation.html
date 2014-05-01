@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="layout/default.css" />
+    <title>K3Match</title>
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-27735124-1']);
+      _gaq.push(['_trackPageview']);
+    
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+</head>
+<body>
+<div id="container">
+    <header>
+        <h1>K3Match</h1>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="documentation.html" id="active">Documentation</a></li>
+            <li><a href="downloads.html">Downloads</a></li>
+        </ul>
+    </nav>
+
+    <div id="banner"></div>
+    
+    <div id="main">
+
+	<h2>K3Match: A package for fast matching of points in 3D space</h2>
+	<p>K3Match uses an implementation of three dimensional binary trees to efficiently find matches between points in 3D space. Two lists of points are compared and match indices as well as distances are given. K3Match can find either the nearest neighbour or all matches within a given search distance in 3D Cartesian space or on the surface of the 2D unit sphere in standard spherical or celestial coordinates.</p>
+
+	<h2>Installing</h2>
+	<p>To install K3Match, including the Python wrappers, <a href="downloads.html">download</a> the appropriate package for your operating system. Binary packages are available for most Linux distributions. Users of OSX or Microsoft Windows should choose the source package instead.</p>
+	<p>For installations from source code, K3Match uses a standard Python distutils installer. Execute the following command in the extracted source code directory to build and install the software.<code>sudo python setup.py install</code>
+	Note that building K3Match needs <a href="http://www.numpy.org">Numpy</a> version 1.0 or higher as well as a recent version of Python.
+	<p>For instructions to build K3Match without Python support please see the included INSTALL file.</p>
+
+	<h2>Usage</h2>
+	<p>All functions are accessible from C and Python. The Python functions use standard <a href="http://www.numpy.org">Numpy</a> arrays for all input and returned values. The following functions are available in version 1.1.</p>
+
+	<code>(idx_a, idx_b, d) = k3match.cartesian(x_a, y_a, z_a, x_b, y_b, z_b, ds)</code>
+	<p>Find all matches in Cartesian coordinates between two sets of points <code class="inline">(x_a, y_a, z_a)</code> and <code>(x_b, y_b, z_b)</code> within a given distance <code class="inline">ds</code>. Ordering of the arrays is not important since binary tree will be built automatically for the longest array.</p>
+
+	<code>(idx_a, idx_b, d) = k3match.spherical(theta_a, phi_a, theta_b, phi_b, ds)</code>
+	<p>Find all matches on the unit sphere between two sets of points <code class="inline">(theta_a, phi_a)</code> and <code class="inline">(theta_b, phi_b)</code> within a given angular distance <code class="inline">ds</code>. Ordering of the arrays is not important since binary tree will be built automatically for the longest array.</p>
+
+	<code>(idx_a, idx_b, d) = k3match.celestial(ra_a, dec_a, ra_b, dec_b, ds)</code>
+	<p>Find all matches on the celestial sphere between two sets of points <code class="inline">(ra_a, dec_a)</code> and <code class="inline">(ra_b, dec_b)</code> within a given angular distance <code class="inline">ds</code>. Ordering of the arrays is not important since binary tree will be built automatically for the longest array.</p>
+
+	<code>(idx, d) = k3match.nearest_cartesian(x_c, y_c, z_c, x_s, y_s, z_s)</code>
+	<p>Find nearest neighbour in Cartesian coordinates between two sets of points <code class="inline">(x_c, y_c, z_c)</code> and <code class="inline">(x_s, y_s, z_s)</code>. Array <code class="inline">c</code> is used for building the catalog and <code class="inline">idx</code> refers to this array.</p>
+    </div>
+
+    <footer>
+        Copyright © 2011 (<a href="http://www.astro.ru.nl/~pschella">Pim Schellart</a>)
+    </footer>
+</div>
+</body>
+</html>

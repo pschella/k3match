@@ -48,6 +48,11 @@ code
     word-wrap: break-word;
 }
 
+code.inline
+{
+    display: inline;
+}
+
 code a
 {
     color: #155;
