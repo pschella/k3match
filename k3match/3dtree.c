@@ -54,7 +54,6 @@ node_t* k3m_insert_node(node_t *tree, node_t *node)
     node_t *parent = NULL;
     node_t *current = tree;
 
-    node->axis = 0;
     node->left = NULL;
     node->right = NULL;
     node->parent = NULL;
@@ -68,7 +67,10 @@ node_t* k3m_insert_node(node_t *tree, node_t *node)
         }
         axis = (axis + 1) % 3;
     }
+
     node->parent = parent;
+    node->axis = axis;
+
     if (tree == NULL) {
         tree = node;
     } else if (node->point->value[parent->axis] < parent->point->value[parent->axis]) {
@@ -77,7 +79,6 @@ node_t* k3m_insert_node(node_t *tree, node_t *node)
         parent->right = node;
     }
 
-    node->axis = axis;
     return tree;
 }
 
