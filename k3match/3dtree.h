@@ -28,6 +28,8 @@ void k3m_print_tree(node_t *tree);
 
 void k3m_print_dot_tree(node_t *tree);
 
+node_t* k3m_insert_node(node_t *tree, node_t *node);
+
 node_t* k3m_closest_leaf(node_t *tree, point_t *point);
 
 node_t* k3m_nearest_neighbour(node_t *tree, point_t *point);

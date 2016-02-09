@@ -48,6 +48,39 @@ void k3m_build_balanced_tree(node_t *tree, point_t **points, int_t npoints, int 
   }
 }
 
+node_t* k3m_insert_node(node_t *tree, node_t *node)
+{
+    int axis = 0;
+    node_t *parent = NULL;
+    node_t *current = tree;
+
+    node->axis = 0;
+    node->left = NULL;
+    node->right = NULL;
+    node->parent = NULL;
+
+    while (current != NULL) {
+        parent = current;
+        if (node->point->value[axis] < current->point->value[axis]) {
+            current = current->left;
+        } else {
+            current = current->right;
+        }
+        axis = (axis + 1) % 3;
+    }
+    node->parent = parent;
+    if (tree == NULL) {
+        tree = node;
+    } else if (node->point->value[parent->axis] < parent->point->value[parent->axis]) {
+        parent->left = node;
+    } else {
+        parent->right = node;
+    }
+
+    node->axis = axis;
+    return tree;
+}
+
 void k3m_print_tree(node_t *tree)
 {
   if (!tree) return;
