@@ -52,7 +52,7 @@ cartesian(PyObject *self, PyObject *args)
   node_t *tree = NULL;
 
   int_t i = 0, j = 0, k = 0, nresults = 0, nmatch = 0, N_a = 0, N_b = 0, N_c = 0, N_s = 0, npool = 0;
-  real_t st = 0, ds = 0;
+  real_t ds = 0;
 
   double *x_p = NULL, *y_p = NULL, *z_p = NULL;
 
@@ -753,12 +753,10 @@ nearest_cartesian(PyObject *self, PyObject *args)
 
   int_t *idx_p;
   real_t *dst_p;
-  int_t i = 0, j = 0, k = 0, nresults = 0, N_c = 0, N_s = 0, npool = 0;
-  real_t st = 0;
+  int_t i = 0, N_c = 0, N_s = 0, npool = 0;
 
   double *x_p = NULL, *y_p = NULL, *z_p = NULL;
 
-  int_t *idx = NULL;
   real_t *values = NULL;
 
   if (!PyArg_ParseTuple(args, "OOOOOO", &in_x_c, &in_y_c, &in_z_c, &in_x_s, &in_y_s, &in_z_s)) return NULL;
@@ -894,10 +892,29 @@ static PyMethodDef K3MatchMethods[] = {
   {NULL, NULL, 0, NULL}
 };
 
-  PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef K3MatchModule = {
+    PyModuleDef_HEAD_INIT,
+    "k3match",   /* name of module */
+    doc,         /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module,
+                  * or -1 if the module keeps state in global variables. */
+    K3MatchMethods
+};
+
+PyMODINIT_FUNC
+PyInit_k3match(void)
+{
+    PyObject *module = PyModule_Create(&K3MatchModule);
+    import_array();
+    return module;
+}
+#else
+PyMODINIT_FUNC
 initk3match(void)
 {
   (void) Py_InitModule3("k3match", K3MatchMethods, doc);
   import_array();
 }
+#endif
 

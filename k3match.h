@@ -15,7 +15,7 @@ extern "C" {
 #endif 
 
 typedef double real_t;
-typedef unsigned long int_t;
+typedef long int_t;
 
 #include <k3match/point.h>
 #include <k3match/median.h>
